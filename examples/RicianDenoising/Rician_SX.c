@@ -6,4 +6,5 @@ void SX(cncTag_t x, RicianCtx *ctx) {
     cncHandle_t XHandle = cncCreateItem_X(&X);
     *X = x;
     cncPut_X(XHandle, x+1, ctx);
+    cncPrescribe_SY(x-1, ctx);
 }
