@@ -1,9 +1,14 @@
 #include "Rician.h"
+#include "math.h"
+
+#define SQR(x) ((x)*(x))
+
+static const double EPSILON=5e-5;
 
 /*
  * typeof u is double 
  */
-void gradientStep(cncTag_t i, cncTag_t j, cncTag_t k, cncTag_t t, uItem u0, uItem u1, uItem u2, uItem u3, uItem u4, uItem u5, uItem u6, RicianCtx *ctx) {
+void gradientStep(cncTag_t i, cncTag_t j, cncTag_t k, cncTag_t t, uItem center, uItem up, uItem down, uItem right, uItem left, uItem zout, uItem zin, RicianCtx *ctx) {
 
     //
     // OUTPUTS
@@ -12,7 +17,13 @@ void gradientStep(cncTag_t i, cncTag_t j, cncTag_t k, cncTag_t t, uItem u0, uIte
     // Put "g" items
     double *g;
     cncHandle_t gHandle = cncCreateItem_g(&g);
-    /* TODO: Initialize g */
+    *g = 1.0/sqrt(EPSILON
+        + SQR(center.item - right.item)
+        + SQR(center.item - left.item)
+        + SQR(center.item - down.item)
+        + SQR(center.item - up.item)
+        + SQR(center.item - zout.item)
+        + SQR(center.item - zin.item));
     cncPut_g(gHandle, i, j, k, t, ctx);
 
     // Prescribe "updateStep" steps
@@ -20,3 +31,5 @@ void gradientStep(cncTag_t i, cncTag_t j, cncTag_t k, cncTag_t t, uItem u0, uIte
 
 
 }
+
+#undef SQR

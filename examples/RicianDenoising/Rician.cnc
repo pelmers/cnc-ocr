@@ -7,82 +7,62 @@
 
 $context {
     int maxT;
-    ImageData imageData;
-}
+    ImageData* imageData;
+};
 
 [ double u : i,j,k,t ];
 [ double g : i,j,k,t ];
 [ int conv : i,j,k,t ];
 
-[ int X: i ];
-[ int Y: i ];
-
-// Init sets u[i,j,k,0] and conv[t=0] and prescribes the first iteration t=1.
+// Init sets u[t=0] and conv[t=0] and prescribes the first iteration t=1.
 ( $init: () );
 
-// pad the edges and prescribe gradientStep
+// Pad the edges and prescribe gradientStep
 // if everything converges, finalize
-( prescribeIteration : totalRows, totalColumns, totalDepth, t )
+( beginIteration : totalRows, totalColumns, totalDepth, t )
         // Make sure the last iteration completed
-    <-  [ conv : {1..totalRows}, {1..totalColumns}, {1..totalColumns}, t - 1 ]
-        // Picture u as a box:
-        // then we need to add a layer to front and back, top and bottom, left and right
-        // front and back
-    ->  [ u : {0..totalRows+1}, {0..totalColumns+1}, 0, t],
-        [ u : {0..totalRows+1}, {0..totalColumns+1}, totalDepth+1, t],
-        // top and bottom
-        [ u : 0, {0..totalColumns+1}, {0..totalDepth+1 }, t],
-        [ u : totalRows+1, {0..totalColumns+1}, totalDepth+1, t],
-        // left and right
-        [ u : {0..totalRows+1}, 0, {0..totalDepth+1}, t],
-        [ u : {0..totalRows+1}, totalColumns+1, {0..totalDepth+1}, t],
-        ( gradientStep : {1..totalRows}, {1..totalColumns}, {1..totalDepth}, t );
+    <-  [ conv : {1..totalRows-2}, {1..totalColumns-2}, {1..totalColumns-2}, t - 1 ]
+    ->  ( gradientStep : {1..totalRows-2}, {1..totalColumns-2}, {1..totalDepth-2}, t );
 
-// calculate gradient for each location and prescribe checkConvergence
+// Calculate gradient for each location and prescribe checkConvergence
 ( gradientStep : i,j,k,t )
         // gradient step needs i,j,k,t-1 and all of its neighbors
-    <-  [ u : i,j,k,t-1 ],
-        [ u : i+1,j,k,t-1 ], // UP
-        [ u : i-1,j,k,t-1 ], // DOWN
-        [ u : i,j+1,k,t-1 ], // RIGHT
-        [ u : i,j-1,k,t-1 ], // LEFT
-        [ u : i,j,k+1,t-1 ], // ZOUT
-        [ u : i,j,k-1,t-1 ]  // ZIN
+    <-  [ center @ u : i,j,k,t-1 ],
+        [ up @ u : i+1,j,k,t-1 ],
+        [ down @ u : i-1,j,k,t-1 ],
+        [ right @ u : i,j+1,k,t-1 ],
+        [ left @ u : i,j-1,k,t-1 ],
+        [ zout @ u : i,j,k+1,t-1 ],
+        [ zin @ u : i,j,k-1,t-1 ]
     ->  [ g : i,j,k,t ],
         ( updateStep : i,j,k,t );
 
-// update u by adding approximation of gradient * dt
+// Update u by adding approximation of gradient * dt
 ( updateStep : i,j,k,t )
-    <-  [ u : i,j,k,t-1 ],
-        [ u : i+1,j,k,t-1 ], // UP
-        [ u : i-1,j,k,t-1 ], // DOWN
-        [ u : i,j+1,k,t-1 ], // RIGHT
-        [ u : i,j-1,k,t-1 ], // LEFT
-        [ u : i,j,k+1,t-1 ], // ZOUT
-        [ u : i,j,k-1,t-1 ], // ZIN
+    <-  [ f_center @ u : i,j,k,0 ],
+        [ u_center @ u : i,j,k,t-1 ],
+        [ u_up @ u : i+1,j,k,t-1 ],
+        [ u_down @ u : i-1,j,k,t-1 ],
+        [ u_right @ u : i,j+1,k,t-1 ],
+        [ u_left @ u : i,j-1,k,t-1 ],
+        [ u_zout @ u : i,j,k+1,t-1 ],
+        [ u_zin @ u : i,j,k-1,t-1 ],
         
-        [ g : i,j,k,t ],
-        [ g : i+1,j,k,t ],   // UP
-        [ g : i-1,j,k,t ],   // DOWN
-        [ g : i,j+1,k,t ],   // RIGHT
-        [ g : i,j-1,k,t ],   // LEFT
-        [ g : i,j,k+1,t ],   // ZOUT
-        [ g : i,j,k-1,t ]    // ZIN
+        [ g_center @ g : i,j,k,t ],
+        [ g_up @ g : i+1,j,k,t ],
+        [ g_down @ g : i-1,j,k,t ],
+        [ g_right @ g : i,j+1,k,t ],
+        [ g_left @ g : i,j-1,k,t ],
+        [ g_zout @ g : i,j,k+1,t ],
+        [ g_zin @ g : i,j,k-1,t ]
     ->  [ u : i,j,k,t ],
         ( checkConvergence : i,j,k,t );
 
-// check convergence on each location
+// Check convergence on each location
 ( checkConvergence : i,j,k,t )
-    <-  [ u : i,j,k,t-1 ],
-        [ u : i,j,k,t ]
+    <-  [ u_prev @ u : i,j,k,t-1 ],
+        [ u_new @ u : i,j,k,t ]
     ->  [ conv : i,j,k,t ];
 
-( SX: x )
-    -> [ X: x+1 ], ( SY: x-1 );
-    
-( SY: y )
-    <- [ X: 2 ]
-    -> [ Y: y+1 ];
-
-( $finalize: () ) <- [ X: 2 ], [ Y: 3 ];
-
+( $finalize: totalRows, totalColumns, totalDepth, maxIter )
+    <-  [ u : totalRows-2, totalColumns-2, totalDepth-2, maxIter ];
