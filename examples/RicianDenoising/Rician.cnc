@@ -24,7 +24,7 @@ $context {
     <-  [ conv : {1..totalRows-2}, {1..totalColumns-2}, {1..totalColumns-2}, t - 1 ]
     ->  ( gradientStep : {1..totalRows-2}, {1..totalColumns-2}, {1..totalDepth-2}, t );
 
-// Calculate gradient for each location and prescribe checkConvergence
+// Calculate gradient for each location
 ( gradientStep : i,j,k,t )
         // gradient step needs i,j,k,t-1 and all of its neighbors
     <-  [ center @ u : i,j,k,t-1 ],
