@@ -27,34 +27,34 @@ $context {
 // Calculate gradient for each location
 ( gradientStep : i,j,k,t )
         // gradient step needs i,j,k,t-1 and all of its neighbors
-    <-  [ center @ u : i,j,k,t-1 ],
-        [ up @ u : i+1,j,k,t-1 ],
-        [ down @ u : i-1,j,k,t-1 ],
-        [ right @ u : i,j+1,k,t-1 ],
-        [ left @ u : i,j-1,k,t-1 ],
-        [ zout @ u : i,j,k+1,t-1 ],
-        [ zin @ u : i,j,k-1,t-1 ]
+    <-  [ center @ u : i,  j,  k,  t-1 ],
+        [ up @ u     : i+1,j,  k,  t-1 ],
+        [ down @ u   : i-1,j,  k,  t-1 ],
+        [ right @ u  : i,  j+1,k,  t-1 ],
+        [ left @ u   : i,  j-1,k,  t-1 ],
+        [ zout @ u   : i,  j,  k+1,t-1 ],
+        [ zin @ u    : i,  j,  k-1,t-1 ]
     ->  [ g : i,j,k,t ],
         ( updateStep : i,j,k,t );
 
 // Update u by adding approximation of gradient * dt
 ( updateStep : i,j,k,t )
-    <-  [ f_center @ u : i,j,k,0 ],
-        [ u_center @ u : i,j,k,t-1 ],
-        [ u_up @ u : i+1,j,k,t-1 ],
-        [ u_down @ u : i-1,j,k,t-1 ],
-        [ u_right @ u : i,j+1,k,t-1 ],
-        [ u_left @ u : i,j-1,k,t-1 ],
-        [ u_zout @ u : i,j,k+1,t-1 ],
-        [ u_zin @ u : i,j,k-1,t-1 ],
+    <-  [ f_center @ u : i,  j,  k,  0 ],
+        [ u_center @ u : i,  j,  k,  t-1 ],
+        [ u_up @ u     : i+1,j,  k,  t-1 ],
+        [ u_down @ u   : i-1,j,  k,  t-1 ],
+        [ u_right @ u  : i,  j+1,k,  t-1 ],
+        [ u_left @ u   : i,  j-1,k,  t-1 ],
+        [ u_zout @ u   : i,  j,  k+1,t-1 ],
+        [ u_zin @ u    : i,  j,  k-1,t-1 ],
         
-        [ g_center @ g : i,j,k,t ],
-        [ g_up @ g : i+1,j,k,t ],
-        [ g_down @ g : i-1,j,k,t ],
-        [ g_right @ g : i,j+1,k,t ],
-        [ g_left @ g : i,j-1,k,t ],
-        [ g_zout @ g : i,j,k+1,t ],
-        [ g_zin @ g : i,j,k-1,t ]
+        [ g_center @ g : i,  j,  k,  t ],
+        [ g_up @ g     : i+1,j,  k,  t ],
+        [ g_down @ g   : i-1,j,  k,  t ],
+        [ g_right @ g  : i,  j+1,k,  t ],
+        [ g_left @ g   : i,  j-1,k,  t ],
+        [ g_zout @ g   : i,  j,  k+1,t ],
+        [ g_zin @ g    : i,  j,  k-1,t ]
     ->  [ u : i,j,k,t ],
         ( checkConvergence : i,j,k,t );
 
