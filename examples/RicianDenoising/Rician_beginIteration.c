@@ -9,6 +9,7 @@ void beginIteration(cncTag_t totalRows, cncTag_t totalColumns, cncTag_t totalDep
     // INPUTS
     //
 
+    printf("beginning iteration %d\n", (int)t);
     { // Access "conv" inputs
         s64 _i, _j, _k;
         int converged = 1;
@@ -23,6 +24,7 @@ void beginIteration(cncTag_t totalRows, cncTag_t totalColumns, cncTag_t totalDep
         if (converged)
             t = ctx->maxT;
     }
+    printf("checked convergence for t = %d\n", (int)t);
 
 
     //
@@ -39,6 +41,4 @@ void beginIteration(cncTag_t totalRows, cncTag_t totalColumns, cncTag_t totalDep
             }
         }
     }
-
-
 }

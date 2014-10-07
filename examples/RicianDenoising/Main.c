@@ -2,8 +2,10 @@
 
 ocrGuid_t mainEdt(u32 paramc, u64 paramv[], u32 depc, ocrEdtDep_t depv[]) {
     setvbuf(stdout, NULL, _IONBF, 0); 
-    CNC_REQUIRE(OCR_MAIN_ARGC == 2, "Usage: %s inputFile\n", OCR_MAIN_ARGV(0));
-    int numRows = 256, numColumns = 256, depth = 256;
+    CNC_REQUIRE(OCR_MAIN_ARGC == 5, "Usage: %s filename rows columns depth\n", OCR_MAIN_ARGV(0));
+    int numRows = atoi(OCR_MAIN_ARGV(2));
+    int numColumns = atoi(OCR_MAIN_ARGV(3));
+    int depth = atoi(OCR_MAIN_ARGV(4));
 
     // Create a new graph context
     RicianCtx *context = Rician_create();
