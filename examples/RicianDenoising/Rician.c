@@ -43,6 +43,7 @@ void Rician_init(RicianArgs *args, RicianCtx *ctx) {
     int P = ctx->imageData->depth;
     
     float* f = malloc(sizeof(float)*M*N*P);
+    printf("reading file\n");
     read_file_a(args->filename, f, M, N, P);
     printf("assigning initial values\n");
     int i,j,k;

@@ -21,8 +21,22 @@ $context {
 // if everything converges, finalize
 ( beginIteration : totalRows, totalColumns, totalDepth, t )
         // Make sure the last iteration completed
-    <-  [ conv : {1..totalRows-2}, {1..totalColumns-2}, {1..totalColumns-2}, t - 1 ]
-    ->  ( gradientStep : {1..totalRows-2}, {1..totalColumns-2}, {1..totalDepth-2}, t );
+    <-  [ conv : {1..totalRows-2}, {1..totalColumns-2}, {1..totalDepth-2}, t - 1 ]
+        // Pad borders of u and g
+    ->  ( paddingStep : totalRows, totalColumns, totalDepth, t ),
+        // compute gradient at each internal point
+        ( gradientStep : {1..totalRows-2}, {1..totalColumns-2}, {1..totalDepth-2}, t );
+        
+// pad the outside of the u and g boxes
+( paddingStep : totalRows, totalColumns, totalDepth, t )
+        // 0 0, 0 1, 1 0, 1 1
+    ->  [ u : {0..totalRows-1}, 0, 0, t ], [ u : {0..totalRows-1}, totalColumns-1, 0, t ], [ u : {0..totalRows-1}, 0, totalDepth-1, t ], [ u : {0..totalRows-1}, totalColumns-1, totalDepth-1, t ],
+        [ u : 0, {0..totalColumns-1}, 0, t ], [ u : totalRows-1, {0..totalColumns-1}, 0, t ], [ u : 0, {0..totalColumns-1}, totalDepth-1, t ], [ u : totalRows-1, {0..totalColumns-1}, totalDepth-1, t ],
+        [ u : 0, 0, {0..totalDepth-1}, t ], [ u : totalRows-1, totalColumns-1, {0..totalDepth-1}, t ], [ u : totalRows-1, 0, {0..totalDepth-1}, t ], [ u : 0, totalColumns-1, {0..totalDepth-1}, t ],
+        
+        [ g : {0..totalRows-1}, 0, 0, t ], [ g : {0..totalRows-1}, totalColumns-1, 0, t ], [ g : {0..totalRows-1}, 0, totalDepth-1, t ], [ g : {0..totalRows-1}, totalColumns-1, totalDepth-1, t ],
+        [ g : 0, {0..totalColumns-1}, 0, t ], [ g : totalRows-1, {0..totalColumns-1}, 0, t ], [ g : 0, {0..totalColumns-1}, totalDepth-1, t ], [ g : totalRows-1, {0..totalColumns-1}, totalDepth-1, t ],
+        [ g : 0, 0, {0..totalDepth-1}, t ], [ g : totalRows-1, totalColumns-1, {0..totalDepth-1}, t ], [ g : totalRows-1, 0, {0..totalDepth-1}, t ], [ g : 0, totalColumns-1, {0..totalDepth-1}, t ];
 
 // Calculate gradient for each location
 ( gradientStep : i,j,k,t )

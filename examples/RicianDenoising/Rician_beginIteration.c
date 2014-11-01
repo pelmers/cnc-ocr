@@ -30,6 +30,9 @@ void beginIteration(cncTag_t totalRows, cncTag_t totalColumns, cncTag_t totalDep
     //
     // OUTPUTS
     //
+    
+    // prescribe padding step
+    cncPrescribe_paddingStep(totalRows, totalColumns, totalDepth, t, ctx);
 
     { // Prescribe "gradientStep" steps
         s64 _i, _j, _k;

@@ -16,7 +16,7 @@ ocrGuid_t mainEdt(u32 paramc, u64 paramv[], u32 depc, ocrEdtDep_t depv[]) {
     ImageData* iData = malloc(sizeof(ImageData));
     iData->cols = numColumns; iData->rows = numRows; iData->depth = depth;
     context->imageData = iData;
-    context->maxT = 1;
+    context->maxT = 5;
     RicianArgs args = { OCR_MAIN_ARGV(1) };
     
     // Launch the graph for execution
