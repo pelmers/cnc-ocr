@@ -43,9 +43,7 @@ void Rician_init(RicianArgs *args, RicianCtx *ctx) {
     int P = ctx->imageData->depth;
     
     float* f = malloc(sizeof(float)*M*N*P);
-    printf("reading file\n");
     read_file_a(args->filename, f, M, N, P);
-    printf("assigning initial values\n");
     int i,j,k;
     for (i = 0; i < M; i++) {
         for (j = 0; j < N; j++) {
@@ -63,9 +61,7 @@ void Rician_init(RicianArgs *args, RicianCtx *ctx) {
                 cncPut_u(uHandle, i, j, k, 0, ctx);
             }
         }
-        printf("row %d\n", i);
     }
-    printf("prescribing\n");
     cncPrescribe_beginIteration(M, N, P, 1, ctx);
     
     // Set finalizer function's tag

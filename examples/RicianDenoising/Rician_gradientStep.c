@@ -25,7 +25,7 @@ void gradientStep(cncTag_t i, cncTag_t j, cncTag_t k, cncTag_t t, uItem center, 
         + SQR(center.item - zout.item)
         + SQR(center.item - zin.item));
     cncPut_g(gHandle, i, j, k, t, ctx);
-    printf("put g at (%d,%d,%d)\n", (int)i,(int)j,(int)k);
+    //printf("put g at (%d,%d,%d)\n", (int)i,(int)j,(int)k);
     
     // Prescribe "updateStep" steps
     cncPrescribe_updateStep(i, j, k, t, ctx);

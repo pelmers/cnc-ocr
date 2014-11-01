@@ -27,7 +27,7 @@ void updateStep(cncTag_t i, cncTag_t j, cncTag_t k, cncTag_t t, uItem f_center, 
                     + g_down.item + g_up.item 
                     + g_zout.item + g_zin.item + gamma));
     cncPut_u(uHandle, i, j, k, t, ctx);
-    printf("put u at (%d,%d,%d)\n", (int)i,(int)j,(int)k);
+    //printf("put u at (%d,%d,%d)\n", (int)i,(int)j,(int)k);
 
     // Prescribe "checkConvergence" steps
     cncPrescribe_checkConvergence(i, j, k, t, ctx);

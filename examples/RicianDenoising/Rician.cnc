@@ -21,22 +21,24 @@ $context {
 // if everything converges, finalize
 ( beginIteration : totalRows, totalColumns, totalDepth, t )
         // Make sure the last iteration completed
-    <-  [ conv : {1..totalRows-2}, {1..totalColumns-2}, {1..totalDepth-2}, t - 1 ]
+    //<-  [ conv : {1..totalRows-2}, {1..totalColumns-2}, {1..totalDepth-2}, t - 1 ]
         // Pad borders of u and g
     ->  ( paddingStep : totalRows, totalColumns, totalDepth, t ),
         // compute gradient at each internal point
-        ( gradientStep : {1..totalRows-2}, {1..totalColumns-2}, {1..totalDepth-2}, t );
+        ( gradientStep : {1..totalRows-2}, {1..totalColumns-2}, {1..totalDepth-2}, t ),
+        // prescribe the next iteration
+        ( beginIteration : totalRows, totalColumns, totalDepth, t+1 );
         
 // pad the outside of the u and g boxes
-( paddingStep : totalRows, totalColumns, totalDepth, t )
-        // 0 0, 0 1, 1 0, 1 1
-    ->  [ u : {0..totalRows-1}, 0, 0, t ], [ u : {0..totalRows-1}, totalColumns-1, 0, t ], [ u : {0..totalRows-1}, 0, totalDepth-1, t ], [ u : {0..totalRows-1}, totalColumns-1, totalDepth-1, t ],
-        [ u : 0, {0..totalColumns-1}, 0, t ], [ u : totalRows-1, {0..totalColumns-1}, 0, t ], [ u : 0, {0..totalColumns-1}, totalDepth-1, t ], [ u : totalRows-1, {0..totalColumns-1}, totalDepth-1, t ],
-        [ u : 0, 0, {0..totalDepth-1}, t ], [ u : totalRows-1, totalColumns-1, {0..totalDepth-1}, t ], [ u : totalRows-1, 0, {0..totalDepth-1}, t ], [ u : 0, totalColumns-1, {0..totalDepth-1}, t ],
-        
-        [ g : {0..totalRows-1}, 0, 0, t ], [ g : {0..totalRows-1}, totalColumns-1, 0, t ], [ g : {0..totalRows-1}, 0, totalDepth-1, t ], [ g : {0..totalRows-1}, totalColumns-1, totalDepth-1, t ],
-        [ g : 0, {0..totalColumns-1}, 0, t ], [ g : totalRows-1, {0..totalColumns-1}, 0, t ], [ g : 0, {0..totalColumns-1}, totalDepth-1, t ], [ g : totalRows-1, {0..totalColumns-1}, totalDepth-1, t ],
-        [ g : 0, 0, {0..totalDepth-1}, t ], [ g : totalRows-1, totalColumns-1, {0..totalDepth-1}, t ], [ g : totalRows-1, 0, {0..totalDepth-1}, t ], [ g : 0, totalColumns-1, {0..totalDepth-1}, t ];
+( paddingStep : M, N, P, t )
+        // front-back, then bottom-top, then left-right
+    ->  [ u : {0..M-1}, {0..N-1}, 0, t ], [ u : {0..M-1}, {0..N-1}, P-1, t ],
+        [ u : {0..M-1}, 0, {1..P-2}, t ], [ u : {0..M-1}, N-1, {1..P-2}, t ],
+        [ u : 0, {1..N-2}, {1..P-2}, t ], [ u : M-1, {1..N-2}, {1..P-2}, t ],
+        // do the same for g
+        [ g : {0..M-1}, {0..N-1}, 0, t ], [ g : {0..M-1}, {0..N-1}, P-1, t ],
+        [ g : {0..M-1}, 0, {1..P-2}, t ], [ g : {0..M-1}, N-1, {1..P-2}, t ],
+        [ g : 0, {1..N-2}, {1..P-2}, t ], [ g : M-1, {1..N-2}, {1..P-2}, t ];
 
 // Calculate gradient for each location
 ( gradientStep : i,j,k,t )
