@@ -89,7 +89,6 @@ def writeTemplate(templatepath, namepattern=None, overwrite=True, destdir=suppor
             pass
         with open(outpath, 'w') as outfile:
             outfile.write(contents)
-            outfile.close()
         print "Writing file:", outpath
     elif not overwrite:
         print "Skipping file (already exists):", outpath
