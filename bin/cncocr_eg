@@ -1,0 +1,4 @@
+#!/bin/sh
+
+ROOT=${CNCOCR_INSTALL?"Missing CNCOCR_INSTALL environment variable"}
+$ROOT/event_grapher.py "$@"
