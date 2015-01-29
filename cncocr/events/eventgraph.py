@@ -15,6 +15,9 @@ class EventGraph(DAG):
         super(EventGraph, self).__init__()
         # name of an activity last running tag
         self._last_running_activity_tag = "init"
+        # put init on the graph and make it blue
+        self.add_node("init")
+        self.style_step("init")
         # [node_ids for get events on the next activity prescribed]
         self._activity_gets = []
         for event in event_log:
@@ -38,7 +41,11 @@ class EventGraph(DAG):
         node_id = self.create_node_id(action, label, tag)
         if action == actions.PRESCRIBED:
             # add node for activity, adding any recorded gets
-            self.add_node_with_parents(node_id, self._activity_gets)
+            self.add_get_edges(node_id, self._activity_gets)
+            self.add_prescribe_edge(self._last_running_activity_tag, node_id)
+            # make a step blue
+            self.style_step(node_id)
+            # clear out the activity get list to prepare for next prescribe
             self._activity_gets = []
         elif action == actions.RUNNING:
             # record this tag as being the currently running activity
@@ -47,17 +54,10 @@ class EventGraph(DAG):
             # no new node here
             pass
         elif action == actions.GET_DEP:
-            # edge from get to current activity
-            # however gets actually happen before the prescribe event
+            # happens before a step is prescribed, so we keep track of these items
             self._activity_gets.append(node_id)
         elif action == actions.PUT:
-            # edge from current activity to put
-            try:
-                self.add_node_with_parents(node_id, [self._last_running_activity_tag])
-            except KeyError:
-                # probably from the init activity
-                # self.add_node_with_parents(node_id, [location])
-                print >>sys.stderr, "No tag found putting %s @ %s" % (label, tag)
+            self.add_put_edges(node_id, [self._last_running_activity_tag])
         else:
             print >>sys.stderr, "Unrecognized action %s" % action
 
@@ -68,4 +68,35 @@ class EventGraph(DAG):
         # graphviz does not like spaces in node id
         tag = tag.replace(", ", "_")
         return "%s_%s" % (label, tag)
+
+    def style_step(self, step_id):
+        '''
+        Style the node for a step.
+        '''
+        self.set_property(step_id, 'color', 'blue')
+
+    def add_get_edges(self, step, items):
+        '''
+        Add get edges from item node ids to step node id.
+        '''
+        self.add_node_with_parents(step, items)
+        # these are collection nodes, so make them green boxes
+        for n in self._activity_gets:
+            self.set_property(n, "shape", "box")
+            self.set_property(n, "color", "green")
+
+    def add_put_edges(self, step, items):
+        '''
+        Add put edges from step node id to item ids.
+        '''
+        self.add_node_with_parents(step, items)
+        self.set_property(step, "shape", "box")
+        self.set_property(step, "color", "green")
+
+    def add_prescribe_edge(self, parent, child):
+        '''
+        Add a prescribe edge from the parent step to the child step node id.
+        '''
+        self.add_child(parent, child)
+        self.set_edge_property(parent, child, "style", "dashed")
 
