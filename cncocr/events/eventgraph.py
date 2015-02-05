@@ -1,4 +1,5 @@
 import sys, re
+from counter import Counter
 from collections import defaultdict
 from cncocr.events.dag import DAG
 import cncocr.events.actions as actions
@@ -13,15 +14,31 @@ class EventGraph(DAG):
         Create a DAG representing the event log given by list of lines event_log.
         '''
         super(EventGraph, self).__init__()
+        self.init_vars()
+        for event in event_log:
+            self.process_event(event)
+        self.post_process()
+
+    def init_vars(self):
+        '''
+        Initialize instance variables to track events, and put the init step on
+        the graph.
+        '''
         # (id, label) of an activity last running tag
         self._last_running_activity_tag = ("init", "init")
-        # put init on the graph and make it blue
+        # put init on the graph and style it like a step
         self.add_node("init")
         self.style_step("init")
         # [node_ids for get events on the next activity prescribed]
         self._activity_gets = []
-        for event in event_log:
-            self.process_event(event)
+        # list of node id's for steps that have entered running state
+        self._steps_run = []
+        # list of node id's for steps that have been prescribed
+        self._steps_prescribed = []
+        # list of node id's for items that have been get
+        self._items_gotten = []
+        # list of node id's for items that have been put
+        self._items_put = []
 
     def process_event(self, event):
         '''
@@ -48,17 +65,21 @@ class EventGraph(DAG):
             self.style_step(node_id)
             # clear out the activity get list to prepare for next prescribe
             self._activity_gets = []
+            self._steps_prescribed.append(node_id)
         elif action == actions.RUNNING:
             # record this tag as being the currently running activity
             self._last_running_activity_tag = (node_id, node_label)
+            self._steps_run.append(node_id)
         elif action == actions.DONE:
-            # no new node here
+            # nothing to do for this action
             pass
         elif action == actions.GET_DEP:
             # happens before a step is prescribed, so we keep track of these items
             self._activity_gets.append((node_id, node_label))
+            self._items_gotten.append(node_id)
         elif action == actions.PUT:
             self.add_put_edges(node_id, node_label, [self._last_running_activity_tag])
+            self._items_put.append(node_id)
         else:
             print >>sys.stderr, "Unrecognized action %s" % action
 
@@ -112,3 +133,38 @@ class EventGraph(DAG):
         self.add_child(parent, child)
         self.set_edge_property(parent, child, "style", "dashed")
 
+    def post_process(self):
+        '''
+        Perform some post processing tasks, emitting warnings or highlighting
+        nodes.
+        '''
+        # warn for items in sequence of node ids appearing more than once
+        def warn_on_duplicates(sequence, verb):
+            # print a warning on duplicates in a sequence
+            counts = Counter(sequence)
+            for k in counts:
+                if counts[k] > 1:
+                    print >>sys.stderr, "Warning: %s %s %d times." % (
+                            self.property(k, 'label', ''), verb, counts[k])
+        # emit warning if set of node id's is nonempty, and set color if given
+        def warn_on_existence(s, msg, color=None):
+            if len(s) > 0:
+                if color:
+                    print >>sys.stderr, "Highlighting in %s:" % (color),
+                    map(lambda n: self.set_property(n, 'color', color), s)
+                    map(lambda n: self.set_property(n, 'penwidth', 2.5), s)
+                print >>sys.stderr, "%s: %s" % (msg,
+                        ', '.join(map(lambda i: self.property(i, 'label', ''), s)))
+        warn_on_duplicates(self._steps_prescribed, "prescribed")
+        warn_on_duplicates(self._items_put, "put")
+        # warn on items gotten but not put or put without get
+        gotten_without_put = set(self._items_gotten).difference(
+                set(self._items_put))
+        put_without_get = set(self._items_put).difference(
+                set(self._items_gotten))
+        warn_on_existence(gotten_without_put, "Items with GET without PUT", 'firebrick')
+        warn_on_existence(put_without_get, "Items with PUT without GET", 'orchid')
+        # warn on steps prescribed but not run
+        prescribed_without_run = set(self._steps_prescribed).difference(
+                set(self._steps_run))
+        warn_on_existence(prescribed_without_run, "Steps PRESCRIBED without RUNNING", 'hotpink')
