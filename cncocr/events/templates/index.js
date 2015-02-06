@@ -2,14 +2,6 @@
     "use strict";
 
     /**
-     * Function form of ternary statement.
-     * Equivalent to val ? trueVal : defaultVal
-     */
-    function def(val, trueVal, defaultVal) {
-        return val ? trueVal : defaultVal;
-    }
-
-    /**
      * Reconstruct the graph from the svg so we can do fancy stuff on it.
      * svgHandle: Selector for the svg element containing the graph.
      * Return a DAG object representing the computation graph.
@@ -39,13 +31,10 @@
             g.addEdge(from, to);
             g.setEdgeProperty(from, to, "color",
                               path.getAttributeNS(null, "stroke"));
-            // TODO
-            g.setEdgeProperty(from, to, "style",
-                              path.getAttributeNS(null, "stroke-dasharray"));
         }
         return g;
     }
 
-    // for debugging
+    // export for debugging
     window.dag = svgToDAG(document.querySelector("#image_data > svg"));
 })();

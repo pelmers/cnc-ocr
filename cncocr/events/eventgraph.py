@@ -1,7 +1,9 @@
+# -*- coding: utf-8 -*-
 import sys, re
 from counter import Counter
 from collections import defaultdict
 from cncocr.events.dag import DAG
+import cncocr.events.styles as styles
 import cncocr.events.actions as actions
 
 class EventGraph(DAG):
@@ -29,7 +31,7 @@ class EventGraph(DAG):
         # put init on the graph and style it like a step
         self.add_node("init")
         self.style_step("init")
-        # [node_ids for get events on the next activity prescribed]
+        # [(id,label,collection) for get events on the next activity prescribed]
         self._activity_gets = []
         # list of node id's for steps that have entered running state
         self._steps_run = []
@@ -75,10 +77,11 @@ class EventGraph(DAG):
             pass
         elif action == actions.GET_DEP:
             # happens before a step is prescribed, so we keep track of these items
-            self._activity_gets.append((node_id, node_label))
+            self._activity_gets.append((node_id, node_label, label))
             self._items_gotten.append(node_id)
         elif action == actions.PUT:
-            self.add_put_edges(node_id, node_label, [self._last_running_activity_tag])
+            self.add_put_edges(node_id, node_label,
+                               label, self._last_running_activity_tag[0])
             self._items_put.append(node_id)
         else:
             print >>sys.stderr, "Unrecognized action %s" % action
@@ -101,7 +104,7 @@ class EventGraph(DAG):
         '''
         Style the node for a step.
         '''
-        self.set_property(step_id, 'color', 'blue')
+        self.set_property(step_id, 'color', styles.color('step'))
 
     def add_get_edges(self, step, step_label, items):
         '''
@@ -110,21 +113,19 @@ class EventGraph(DAG):
         self.add_node_with_parents(step, [i[0] for i in items])
         self.set_property(step, "label", step_label)
         # these are collection nodes, so make them green boxes
-        for n, label in self._activity_gets:
+        for n, label, collection in items:
             self.set_property(n, "shape", "box")
-            self.set_property(n, "color", "green")
+            self.set_property(n, "color", styles.color('item', collection))
             self.set_property(n, "label", label)
 
-    def add_put_edges(self, step, step_label, items):
+    def add_put_edges(self, item_id, item_label, collection, step_id):
         '''
-        Add put edges from step node id to item (id, label).
+        Add put edges from step node id to item of given collection
         '''
-        self.add_node_with_parents(step, [i[0] for i in items])
-        self.set_property(step, "label", step_label)
-        self.set_property(step, "shape", "box")
-        self.set_property(step, "color", "green")
-        for n, label in items:
-            self.set_property(n, "label", label)
+        self.add_node_with_parents(item_id, [step_id])
+        self.set_property(item_id, "label", item_label)
+        self.set_property(item_id, "shape", "box")
+        self.set_property(item_id, "color", styles.color('item', collection))
 
     def add_prescribe_edge(self, parent, child):
         '''
@@ -162,9 +163,12 @@ class EventGraph(DAG):
                 set(self._items_put))
         put_without_get = set(self._items_put).difference(
                 set(self._items_gotten))
-        warn_on_existence(gotten_without_put, "Items with GET without PUT", 'firebrick')
-        warn_on_existence(put_without_get, "Items with PUT without GET", 'orchid')
+        warn_on_existence(gotten_without_put, "Items with GET without PUT",
+                styles.color('get_without_put'))
+        warn_on_existence(put_without_get, "Items with PUT without GET",
+                styles.color('put_without_get'))
         # warn on steps prescribed but not run
         prescribed_without_run = set(self._steps_prescribed).difference(
                 set(self._steps_run))
-        warn_on_existence(prescribed_without_run, "Steps PRESCRIBED without RUNNING", 'hotpink')
+        warn_on_existence(prescribed_without_run, "Steps PRESCRIBED without RUNNING",
+                styles.color('prescribe_without_run'))
