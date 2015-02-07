@@ -12,9 +12,12 @@ class EventGraph(DAG):
     serialized, i.e. no two activities can be running at the same time.
     '''
     def __init__(self, event_log):
-        '''
-        Create a DAG representing the event log given by list of lines event_log.
-        '''
+        """
+        EventGraph: create a DAG representing an event log
+
+        event_log parameter should be a list of strings, each element being a
+        line in the event log.
+        """
         super(EventGraph, self).__init__()
         self.init_vars()
         for event in event_log:
@@ -22,10 +25,12 @@ class EventGraph(DAG):
         self.post_process()
 
     def init_vars(self):
-        '''
-        Initialize instance variables to track events, and put the init step on
-        the graph.
-        '''
+        """
+        Initialize instance variables to track events.
+
+        Initialize internal variables which track state changes during
+        process_event. Also put the init step on the graph as node 0.
+        """
         # id of the next node (start at 1 since init = 0)
         self._id_count = 1
         # action_label_tag identifier -> node id
@@ -48,9 +53,12 @@ class EventGraph(DAG):
         self._last_running_activity_tag = 0
 
     def process_event(self, event):
-        '''
+        """
         Add event, a line from the event log, to the DAG.
-        '''
+
+        Requires that init_vars be called first, and expects that the rest of
+        the event log up to this event has already been processed.
+        """
         # skip anything without an @
         if "@" not in event:
             return
@@ -92,10 +100,13 @@ class EventGraph(DAG):
             print >>sys.stderr, "Unrecognized action %s" % action
 
     def create_node_id(self, action, label, tag):
-        '''
+        """
         Return a node id for the given action, label, tag.
-        Node id's are integers in the order of appearance in the log.
-        '''
+
+        Node id's are integers in the order of appearance in the log. If
+        create_node_id is called more than once with the same parameters, the
+        same id will be returned each time.
+        """
         ident = "%s %s" % (label, tag)
         if ident not in self._cache_node_ids:
             self._cache_node_ids[ident] = self._id_count
@@ -103,50 +114,59 @@ class EventGraph(DAG):
         return self._cache_node_ids[ident]
 
     def create_node_label(self, action, label, tag):
-        '''
-        Return human-readable label for given action, label, tag
-        '''
+        """Return human-readable label for given action, label, tag"""
         return "%s: %s" % (label, tag.replace(", ", ","))
 
     def style_step(self, step_id):
-        '''
-        Style the node for a step.
-        '''
+        """Style the node for a step."""
         self.set_property(step_id, 'color', styles.color('step'))
 
+    def style_item(self, item_id, label, collection):
+        """Style the node for an item."""
+        self.set_property(item_id, "shape", "box")
+        self.set_property(item_id, "color", styles.color('item', collection))
+        self.set_property(item_id, "label", label)
+
     def add_get_edges(self, step, step_label, items):
-        '''
-        Add get edges from item node (id, label) to step node id.
-        '''
+        """
+        Add get edges from each item node (id, label) to step node id.
+
+        Adds, styles, and labels item nodes if they are not already on the
+        graph.
+        """
         self.add_node_with_parents(step, [i[0] for i in items])
         self.set_property(step, "label", step_label)
         # these are collection nodes, so make them green boxes
         for n, label, collection in items:
-            self.set_property(n, "shape", "box")
-            self.set_property(n, "color", styles.color('item', collection))
-            self.set_property(n, "label", label)
+            self.style_item(n, label, collection)
 
     def add_put_edges(self, item_id, item_label, collection, step_id):
-        '''
-        Add put edges from step node id to item of given collection
-        '''
+        """
+        Add put edge from step node id to the item of given collection
+
+        Also style and label the item node.
+        Note: Both add_get_edges and add_put_edges will add and style item
+        nodes. This is done because PUT ⇏  GET.
+        """
         self.add_node_with_parents(item_id, [step_id])
-        self.set_property(item_id, "label", item_label)
-        self.set_property(item_id, "shape", "box")
-        self.set_property(item_id, "color", styles.color('item', collection))
+        self.style_item(item_id, item_label, collection)
 
     def add_prescribe_edge(self, parent, child):
-        '''
-        Add a prescribe edge from the parent step to the child step node id.
-        '''
+        """Add and style a prescribe edge from the parent id to the child id."""
         self.add_child(parent, child)
         self.set_edge_property(parent, child, "style", "dashed")
 
     def post_process(self):
-        '''
-        Perform some post processing tasks, emitting warnings or highlighting
-        nodes.
-        '''
+        """
+        Perform some post processing tasks on the completed graph.
+
+        Emit warnings and/or highlight occurrences of possible bugs:
+        -- Items put multiple times
+        -- Steps prescribed multiple times
+        -- Steps prescribed without being run
+        -- Items gotten without a put and items put without a get
+        -- Nodes with no path to the final finalize.
+        """
         # warn for items in sequence of node ids appearing more than once
         def warn_on_duplicates(sequence, verb):
             # print a warning on duplicates in a sequence
@@ -162,8 +182,8 @@ class EventGraph(DAG):
                     print >>sys.stderr, "Highlighting in %s:" % (color),
                     map(lambda n: self.set_property(n, 'color', color), s)
                     map(lambda n: self.set_property(n, 'penwidth', 2.5), s)
-                print >>sys.stderr, "%s: %s" % (msg,
-                        ', '.join(map(lambda i: self.property(i, 'label', ''), s)))
+                print >>sys.stderr, "%s: %s" % (msg, ', '.join(map(lambda i:
+                    self.property(i, 'label', ''), s)))
         warn_on_duplicates(self._steps_prescribed, "prescribed")
         warn_on_duplicates(self._items_put, "put")
         # warn on items gotten but not put or put without get
