@@ -22,6 +22,7 @@
                 g.setProperty(id, "color",
                         shape.getAttributeNS(null, "stroke"));
             }
+            g.setProperty(id, "label", nodes[i].querySelector("text").innerHTML);
             g.setProperty(id, "_dom", nodes[i]);
         }
         for (var i = 0; i < edges.length; i++) {
@@ -43,5 +44,7 @@
 
     var animator = Animate(window.dag);
     animator.hideAll();
-    animator.showInOrder(100);
+    // We want showing to take no longer than 10000 ms
+    var maxTotalTime = 10000;
+    animator.showInOrder(Math.min(maxTotalTime / window.dag.numNodes(), 100));
 })();

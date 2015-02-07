@@ -24,7 +24,8 @@ def main():
             gv.stdin.write(graph.dump_graph_dot())
             data = gv.communicate()[0]
             print template.render({
-                    'image_data' : data
+                    'graph_title': args.logfile,
+                    'image_data' : data,
                 }).encode('utf-8')
         else:
             print graph.dump_graph_dot()

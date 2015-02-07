@@ -231,7 +231,7 @@ function DAG(graph) {
         }
         // backtrack up the DAG to get the path
         var heads = [];
-        backtrack_criterion = (backtrack_criterion !== undefined)?backtrack_criterion:function(id) {};
+        backtrack_criterion = (backtrack_criterion !== undefined)?backtrack_criterion:function(id) {return true};
         // find the leaf nodes
         for (var i = 0; i < ts.length; i++)
             if (children(ts[i]).length === 0 && backtrack_criterion(ts[i]))
@@ -280,6 +280,7 @@ function DAG(graph) {
         cpl: cpl,
         crit_paths: crit_paths,
         sum: sum,
+        numNodes: numNodes,
     };
 }
 
