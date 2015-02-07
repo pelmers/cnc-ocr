@@ -11,30 +11,37 @@
             nodes = svgHandle.querySelectorAll(".node"),
             g = DAG();
         for (var i = 0; i < nodes.length; i++) {
-            g.addNode(nodes[i].id);
-            var shape = nodes[i].querySelector("ellipse");
+            var id = parseInt(nodes[i].id),
+                shape = nodes[i].querySelector("ellipse");
+            g.addNode(id);
             if (shape === null) {
                 // try polygon
                 shape = nodes[i].querySelector("polygon");
             }
             if (shape != null) {
-                g.setProperty(nodes[i].id, "color",
+                g.setProperty(id, "color",
                         shape.getAttributeNS(null, "stroke"));
             }
+            g.setProperty(id, "_dom", nodes[i]);
         }
         for (var i = 0; i < edges.length; i++) {
             var id = edges[i].id,
                 path = edges[i].querySelector("path"),
                 split = id.split("->"),
-                from = split[0],
-                to = split[1];
+                from = parseInt(split[0]),
+                to = parseInt(split[1]);
             g.addEdge(from, to);
             g.setEdgeProperty(from, to, "color",
                               path.getAttributeNS(null, "stroke"));
+            g.setEdgeProperty(from, to, "_dom", edges[i]);
         }
         return g;
     }
 
     // export for debugging
     window.dag = svgToDAG(document.querySelector("#image_data > svg"));
+
+    var animator = Animate(window.dag);
+    animator.hideAll();
+    animator.showInOrder(100);
 })();
