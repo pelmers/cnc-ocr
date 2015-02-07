@@ -26,11 +26,10 @@ class EventGraph(DAG):
         Initialize instance variables to track events, and put the init step on
         the graph.
         '''
-        # (id, label) of an activity last running tag
-        self._last_running_activity_tag = ("init", "init")
-        # put init on the graph and style it like a step
-        self.add_node("init")
-        self.style_step("init")
+        # id of the next node (start at 1 since init = 0)
+        self._id_count = 1
+        # action_label_tag identifier -> node id
+        self._cache_node_ids = {}
         # [(id,label,collection) for get events on the next activity prescribed]
         self._activity_gets = []
         # list of node id's for steps that have entered running state
@@ -41,6 +40,12 @@ class EventGraph(DAG):
         self._items_gotten = []
         # list of node id's for items that have been put
         self._items_put = []
+        # put init on the graph and style it like a step
+        self.add_node(0)
+        self.set_property(0, "label", "init")
+        self.style_step(0)
+        # id of last step to enter running state
+        self._last_running_activity_tag = 0
 
     def process_event(self, event):
         '''
@@ -62,7 +67,7 @@ class EventGraph(DAG):
         if action == actions.PRESCRIBED:
             # add node for activity, adding any recorded gets
             self.add_get_edges(node_id, node_label, self._activity_gets)
-            self.add_prescribe_edge(self._last_running_activity_tag[0], node_id)
+            self.add_prescribe_edge(self._last_running_activity_tag, node_id)
             # make a step blue
             self.style_step(node_id)
             # clear out the activity get list to prepare for next prescribe
@@ -70,7 +75,7 @@ class EventGraph(DAG):
             self._steps_prescribed.append(node_id)
         elif action == actions.RUNNING:
             # record this tag as being the currently running activity
-            self._last_running_activity_tag = (node_id, node_label)
+            self._last_running_activity_tag = node_id
             self._steps_run.append(node_id)
         elif action == actions.DONE:
             # nothing to do for this action
@@ -81,18 +86,21 @@ class EventGraph(DAG):
             self._items_gotten.append(node_id)
         elif action == actions.PUT:
             self.add_put_edges(node_id, node_label,
-                               label, self._last_running_activity_tag[0])
+                               label, self._last_running_activity_tag)
             self._items_put.append(node_id)
         else:
             print >>sys.stderr, "Unrecognized action %s" % action
 
     def create_node_id(self, action, label, tag):
         '''
-        Return a node id for the given action, label, tag
+        Return a node id for the given action, label, tag.
+        Node id's are integers in the order of appearance in the log.
         '''
-        # graphviz does not like spaces in node id
-        tag = tag.replace(", ", "_")
-        return "%s_%s" % (label, tag)
+        ident = "%s %s" % (label, tag)
+        if ident not in self._cache_node_ids:
+            self._cache_node_ids[ident] = self._id_count
+            self._id_count += 1
+        return self._cache_node_ids[ident]
 
     def create_node_label(self, action, label, tag):
         '''
