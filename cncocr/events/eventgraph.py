@@ -11,17 +11,18 @@ class EventGraph(DAG):
     Directed acyclic graph for a CnC-OCR event log. Assumes that execution is
     serialized, i.e. no two activities can be running at the same time.
     '''
-    def __init__(self, event_log):
+    def __init__(self, event_log, prescribe=True):
         """
         EventGraph: create a DAG representing an event log
 
         event_log parameter should be a list of strings, each element being a
         line in the event log.
+        prescribe indicates whether prescribe edges will be added to the graph.
         """
         super(EventGraph, self).__init__()
         self.init_vars()
         for event in event_log:
-            self.process_event(event)
+            self.process_event(event, prescribe)
         self.post_process()
 
     def init_vars(self):
@@ -52,10 +53,11 @@ class EventGraph(DAG):
         # id of last step to enter running state
         self._last_running_activity_tag = 0
 
-    def process_event(self, event):
+    def process_event(self, event, prescribe):
         """
         Add event, a line from the event log, to the DAG.
 
+        Do not add prescribe edges if prescribe is False.
         Requires that init_vars be called first, and expects that the rest of
         the event log up to this event has already been processed.
         """
@@ -75,7 +77,8 @@ class EventGraph(DAG):
         if action == actions.PRESCRIBED:
             # add node for activity, adding any recorded gets
             self.add_get_edges(node_id, node_label, self._activity_gets)
-            self.add_prescribe_edge(self._last_running_activity_tag, node_id)
+            if prescribe:
+                self.add_prescribe_edge(self._last_running_activity_tag, node_id)
             # make a step blue
             self.style_step(node_id)
             # clear out the activity get list to prepare for next prescribe
@@ -123,7 +126,7 @@ class EventGraph(DAG):
 
     def style_item(self, item_id, label, collection):
         """Style the node for an item."""
-        self.set_property(item_id, "shape", "box")
+        self.set_property(item_id, "shape", styles.shape('item'))
         self.set_property(item_id, "color", styles.color('item', collection))
         self.set_property(item_id, "label", label)
 
@@ -154,7 +157,7 @@ class EventGraph(DAG):
     def add_prescribe_edge(self, parent, child):
         """Add and style a prescribe edge from the parent id to the child id."""
         self.add_child(parent, child)
-        self.set_edge_property(parent, child, "style", "dashed")
+        self.set_edge_property(parent, child, "style", styles.style("prescribe"))
 
     def post_process(self):
         """

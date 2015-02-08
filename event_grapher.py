@@ -12,11 +12,13 @@ def main():
             description="Turn CnC-OCR event logs into graphs.")
     arg_parser.add_argument('logfile', help="CnC-OCR log file to process")
     arg_parser.add_argument('--html', action="store_true",
-            help="Save as an html file with javascript animations. Requires dot to be installed.")
+            help="Write to stdout as HTML. Requires dot to be installed.")
+    arg_parser.add_argument('--no-prescribe', action="store_true",
+            help="Do not add prescribe edges to the graph produced.")
     args = arg_parser.parse_args()
 
     with open(args.logfile, 'r') as log:
-        graph = EventGraph(log.readlines())
+        graph = EventGraph(log.readlines(), not args.no_prescribe)
         if args.html:
             template = templateEnv.get_template("index.html")
             gv = subprocess.Popen(['dot', '-Tsvg'], stdin=subprocess.PIPE,
