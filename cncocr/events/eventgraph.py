@@ -52,6 +52,8 @@ class EventGraph(DAG):
         self.style_step(0)
         # id of last step to enter running state
         self._last_running_activity_tag = 0
+        # the id of the finalize node
+        self.finalize_node = None
 
     def process_event(self, event, prescribe):
         """
@@ -84,6 +86,9 @@ class EventGraph(DAG):
             # clear out the activity get list to prepare for next prescribe
             self._activity_gets = []
             self._steps_prescribed.append(node_id)
+            # track the finalize node
+            if label.endswith("_finalize"):
+                self.finalize_node = node_id
         elif action == actions.RUNNING:
             # record this tag as being the currently running activity
             self._last_running_activity_tag = node_id
@@ -182,24 +187,30 @@ class EventGraph(DAG):
         def warn_on_existence(s, msg, color=None):
             if len(s) > 0:
                 if color:
-                    print >>sys.stderr, "Highlighting in %s:" % (color),
                     map(lambda n: self.set_property(n, 'color', color), s)
-                    map(lambda n: self.set_property(n, 'penwidth', 2.5), s)
-                print >>sys.stderr, "%s: %s" % (msg, ', '.join(map(lambda i:
-                    self.property(i, 'label', ''), s)))
+                map(lambda n: self.set_property(n, 'penwidth', 2.5), s)
+                print >>sys.stderr, "Highlighting in %s: %s: %s" % (
+                        color if color else 'bold',
+                        msg,
+                        ', '.join(map(lambda i: self.property(i, 'label', ''), s)))
         warn_on_duplicates(self._steps_prescribed, "prescribed")
         warn_on_duplicates(self._items_put, "put")
         # warn on items gotten but not put or put without get
-        gotten_without_put = set(self._items_gotten).difference(
-                set(self._items_put))
-        put_without_get = set(self._items_put).difference(
-                set(self._items_gotten))
+        gotten_without_put = set(self._items_gotten).difference(set(self._items_put))
+        put_without_get = set(self._items_put).difference(set(self._items_gotten))
         warn_on_existence(gotten_without_put, "Items with GET without PUT",
-                styles.color('get_without_put'))
+                          styles.color('get_without_put'))
         warn_on_existence(put_without_get, "Items with PUT without GET",
-                styles.color('put_without_get'))
+                          styles.color('put_without_get'))
         # warn on steps prescribed but not run
-        prescribed_without_run = set(self._steps_prescribed).difference(
-                set(self._steps_run))
+        prescribed_without_run = set(self._steps_prescribed).difference(set(self._steps_run))
         warn_on_existence(prescribed_without_run, "Steps PRESCRIBED without RUNNING",
-                styles.color('prescribe_without_run'))
+                          styles.color('prescribe_without_run'))
+        # warn on nodes that have no path to the finalize
+        if self.finalize_node is not None:
+            trans = self.transpose()
+            visits = set()
+            # dfs, track all the nodes we visited
+            trans.dfs(self.finalize_node, visitor = visits.add)
+            warn_on_existence(set(self).difference(visits),
+                              "Nodes not on path to FINALIZE")
