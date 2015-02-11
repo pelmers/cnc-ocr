@@ -8,6 +8,9 @@
     <style>{% include 'index.css' %}</style>
   </head>
   <body>
+    <div id="hidden_icon" style="display:none;">
+      {{ include_icon('icons/play.png') }}
+    </div>
     <div id="control_container">
       <table id="controls">
         <tr>
@@ -17,11 +20,8 @@
           <td id="prev">
             {{ include_icon('icons/prev.png') }}
           </td>
-          <td id="pause">
+          <td id="playpause">
             {{ include_icon('icons/pause.png') }}
-          </td>
-          <td id="play">
-            {{ include_icon('icons/play.png') }}
           </td>
           <td id="next">
             {{ include_icon('icons/next.png') }}
