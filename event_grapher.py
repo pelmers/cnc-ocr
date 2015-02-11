@@ -1,14 +1,26 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
-import argparse, subprocess
+import subprocess
+from argparse import ArgumentParser
+from base64 import b64encode
+from os.path import join, dirname
+from jinja2 import Environment, PackageLoader, Markup
 from cncocr.events.eventgraph import EventGraph
-from jinja2 import Environment, PackageLoader
+from inspect import getfile
 
-templateEnv = Environment(loader=PackageLoader('cncocr.events.eventgraph'))
+loader = PackageLoader('cncocr.events.eventgraph')
+templateEnv = Environment(loader = loader)
+
+# Add a base64-encoding filter to Jinja (for embedding icons)
+def embed_b64(name):
+    basepath = join(dirname(getfile(EventGraph)), 'templates')
+    with open(join(basepath, name), "rb") as f:
+        return b64encode(f.read())
+templateEnv.globals['embed_b64'] = embed_b64
 
 def main():
-    arg_parser = argparse.ArgumentParser(prog="cncocr_eg",
+    arg_parser = ArgumentParser(prog="cncocr_eg",
             description="Turn CnC-OCR event logs into graphs.")
     arg_parser.add_argument('logfile', help="CnC-OCR log file to process")
     arg_parser.add_argument('--html', action="store_true",

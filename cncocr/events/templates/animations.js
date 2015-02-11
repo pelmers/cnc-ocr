@@ -4,12 +4,27 @@
  */
 function Animate(dag) {
     "use strict";
-    var start_id = 0, end_id = 0;
+    // save first node, last node, and the next node to show
+    var start_id = 0, end_id = 0, next_node = 0;
     while (dag.graph()[end_id] !== undefined) {
         end_id++;
     }
     // we overcounted by 1.
-    end_id -= 1;
+    end_id--;
+    // flag to determine whether we are paused
+    var paused = false;
+    // pre-compute the times at which to show each edge in (O(M))
+    // map of time -> [{from:n1, to:n2}] for each edge at given time
+    var show_timings = (function() {
+        var m = {};
+        onAll(null, function(f, t) {
+            var time = Math.max(f, t);
+            if (!m[time])
+                m[time] = [];
+            m[time].push({from: f, to: t});
+        });
+        return m;
+    }());
     // set a property _weight of each node to 1, so we can get crit paths
     onAll(function(n) { dag.setProperty(n, '_weight', 1); });
 
@@ -55,42 +70,66 @@ function Animate(dag) {
     }
 
     function hideAll() {
-        // Hide all nodes and edges.
+        // Hide all nodes and edges. Set next_node to first node.
         onAll(hide, hide);
+        next_node = start_id;
     }
     function showAll() {
-        // Show all nodes and edges.
+        // Show all nodes and edges. Set next_node to last node + 1.
         onAll(show, show);
+        next_node = end_id+1;
     }
-    function showInOrder(timestep, atEnd) {
+    function showNext() {
+        // Show the next node and any induced edges.
+        // Increment next_node.
+        show(next_node);
+        if (show_timings[next_node])
+            for (var i = 0; i < show_timings[next_node].length; i++)
+                show(show_timings[next_node][i].from, show_timings[next_node][i].to);
+        next_node++;
+    }
+    function hidePrev() {
+        // Hide the last node shown, and decrement next_node.
+        next_node--;
+        hide(next_node);
+        if (show_timings[next_node])
+            for (var i = 0; i < show_timings[next_node].length; i++)
+                hide(show_timings[next_node][i].from, show_timings[next_node][i].to);
+    }
+    function showInOrder(timestep) {
         // Show the nodes and induced edges in order at timestep intervals (ms).
-        // Call atEnd when the entire graph is shown.
-        atEnd = (atEnd)?atEnd:function() {};
-        // pre-compute the times at which to show each edge (O(m))
-        // map of time -> [{from:n1, to:n2}] for each edge at given time
-        var show_timings = (function() {
-            var m = {};
-            onAll(null, function(f, t) {
-                var time = Math.max(f, t);
-                if (!m[time])
-                    m[time] = [];
-                m[time].push({from: f, to: t});
-            });
-            return m;
-        }());
-        // recur sets itself on a timeout using given timestep
-        function recur(n) {
-            if (n <= end_id) {
-                show(n);
-                if (show_timings[n])
-                    for (var i = 0; i < show_timings[n].length; i++)
-                        show(show_timings[n][i].from, show_timings[n][i].to);
-                setTimeout(function() {recur(n+1);}, timestep);
-            } else {
-                atEnd();
+        // Stop if the pause() method is called.
+        function recur() {
+            // show next while we're not paused and not at the end
+            if (next_node <= end_id && !paused) {
+                showNext();
+                // recur sets itself on a timeout using given timestep
+                setTimeout(recur, timestep);
             }
         }
-        recur(start_id);
+        recur();
+    }
+    function hideInOrder(timestep) {
+        // Hide the nodes and induced edges in order at timestep intervals (ms).
+        // Stop if the pause() method is called.
+        function recur() {
+            // show next while we're not paused and not at the end
+            if (next_node <= end_id && !paused) {
+                hidePrev();
+                // recur sets itself on a timeout using given timestep
+                setTimeout(recur, timestep);
+            }
+        }
+        recur();
+    }
+    function pause() {
+        // Pause current animations.
+        paused = true;
+    }
+
+    function unpause() {
+        // Unset the pause flag. Does not resume animations.
+        paused = false;
     }
 
     return {
@@ -100,5 +139,10 @@ function Animate(dag) {
         hideAll: hideAll,
         showAll: showAll,
         showInOrder: showInOrder,
+        hideInOrder: hideInOrder,
+        showNext: showNext,
+        hidePrev: hidePrev,
+        pause: pause,
+        unpause: unpause,
     };
 }

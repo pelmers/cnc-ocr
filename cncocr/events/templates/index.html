@@ -1,12 +1,38 @@
+{% macro include_icon(fname) %}
+<img src="data:image/png;base64,{{ embed_b64(fname) }}">
+{% endmacro %}
 <!DOCTYPE html>
 <html>
   <head>
     <title>{{graph_title}}</title>
   </head>
   <body>
+    <table id="controls">
+      <tr>
+        <td id="start">
+          {{ include_icon('icons/start.png') }}
+        </td>
+        <td id="prev">
+          {{ include_icon('icons/prev.png') }}
+        </td>
+        <td id="pause">
+          {{ include_icon('icons/pause.png') }}
+        </td>
+        <td id="play">
+          {{ include_icon('icons/play.png') }}
+        </td>
+        <td id="next">
+          {{ include_icon('icons/next.png') }}
+        </td>
+        <td id="end">
+          {{ include_icon('icons/end.png') }}
+        </td>
+      </tr>
+    </table>
     <div id="image_data">{{image_data}}</div>
     <script>{% include 'dag.js' %}</script>
     <script>{% include 'animations.js' %}</script>
+    <script>{% include 'controls.js' %}</script>
     <script>{% include 'index.js' %}</script>
   </body>
 </html>
