@@ -46,7 +46,8 @@
     animator.hideAll();
     // We want showing to take no longer than 10000 ms
     var maxTotalTime = 10000;
-    animator.showInOrder(Math.min(maxTotalTime / window.dag.numNodes(), 100));
+    animator.setTimestep(Math.min(maxTotalTime / window.dag.numNodes(), 100));
+    animator.showInOrder();
     // Attach controls to the animations.
-    var controller = Control(animator, window.dag);
+    Control(animator, window.dag);
 })();

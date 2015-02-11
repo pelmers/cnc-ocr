@@ -4,6 +4,8 @@
  */
 function Animate(dag) {
     "use strict";
+    // time between showing nodes (milliseconds)
+    var timestep = 100;
     // save first node, last node, and the next node to show
     var start_id = 0, end_id = 0, next_node = 0;
     while (dag.graph()[end_id] !== undefined) {
@@ -96,28 +98,28 @@ function Animate(dag) {
             for (var i = 0; i < show_timings[next_node].length; i++)
                 hide(show_timings[next_node][i].from, show_timings[next_node][i].to);
     }
-    function showInOrder(timestep) {
-        // Show the nodes and induced edges in order at timestep intervals (ms).
+    function showInOrder() {
+        // Show the nodes and induced edges in order at predefined intervals (ms).
         // Stop if the pause() method is called.
         function recur() {
             // show next while we're not paused and not at the end
             if (next_node <= end_id && !paused) {
                 showNext();
                 // recur sets itself on a timeout using given timestep
-                setTimeout(recur, timestep);
+                setTimeout(recur, getTimestep());
             }
         }
         recur();
     }
-    function hideInOrder(timestep) {
-        // Hide the nodes and induced edges in order at timestep intervals (ms).
+    function hideInOrder() {
+        // Hide the nodes and induced edges in order at predefined intervals (ms).
         // Stop if the pause() method is called.
         function recur() {
             // show next while we're not paused and not at the end
             if (next_node <= end_id && !paused) {
                 hidePrev();
                 // recur sets itself on a timeout using given timestep
-                setTimeout(recur, timestep);
+                setTimeout(recur, getTimestep());
             }
         }
         recur();
@@ -126,10 +128,22 @@ function Animate(dag) {
         // Pause current animations.
         paused = true;
     }
-
     function unpause() {
-        // Unset the pause flag. Does not resume animations.
+        // Unset the pause flag. Note: Does not resume animations.
         paused = false;
+    }
+    // underscore to avoid name conflict. we remove _ on export.
+    function _paused() {
+        // Return whether animation is paused.
+        return paused;
+    }
+    function getTimestep() {
+        // Return current timestep in node playback.
+        return timestep;
+    }
+    function setTimestep(ts) {
+        // Set timestep between showing nodes to given value in milliseconds.
+        timestep = ts;
     }
 
     return {
@@ -142,7 +156,10 @@ function Animate(dag) {
         hideInOrder: hideInOrder,
         showNext: showNext,
         hidePrev: hidePrev,
+        paused: _paused,
         pause: pause,
         unpause: unpause,
+        getTimestep: getTimestep,
+        setTimestep: setTimestep,
     };
 }

@@ -5,30 +5,34 @@
 <html>
   <head>
     <title>{{graph_title}}</title>
+    <style>{% include 'index.css' %}</style>
   </head>
   <body>
-    <table id="controls">
-      <tr>
-        <td id="start">
-          {{ include_icon('icons/start.png') }}
-        </td>
-        <td id="prev">
-          {{ include_icon('icons/prev.png') }}
-        </td>
-        <td id="pause">
-          {{ include_icon('icons/pause.png') }}
-        </td>
-        <td id="play">
-          {{ include_icon('icons/play.png') }}
-        </td>
-        <td id="next">
-          {{ include_icon('icons/next.png') }}
-        </td>
-        <td id="end">
-          {{ include_icon('icons/end.png') }}
-        </td>
-      </tr>
-    </table>
+    <div id="control_container">
+      <table id="controls">
+        <tr>
+          <td id="start">
+            {{ include_icon('icons/start.png') }}
+          </td>
+          <td id="prev">
+            {{ include_icon('icons/prev.png') }}
+          </td>
+          <td id="pause">
+            {{ include_icon('icons/pause.png') }}
+          </td>
+          <td id="play">
+            {{ include_icon('icons/play.png') }}
+          </td>
+          <td id="next">
+            {{ include_icon('icons/next.png') }}
+          </td>
+          <td id="end">
+            {{ include_icon('icons/end.png') }}
+          </td>
+        </tr>
+      </table>
+      Speed:<input type="range" value="850" min="0" max="1000" id="timestep" />
+    </div>
     <div id="image_data">{{image_data}}</div>
     <script>{% include 'dag.js' %}</script>
     <script>{% include 'animations.js' %}</script>
