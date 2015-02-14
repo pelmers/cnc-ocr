@@ -188,8 +188,9 @@ class EventGraph(DAG):
             if len(s) > 0:
                 if color:
                     map(lambda n: self.set_property(n, 'color', color), s)
-                map(lambda n: self.set_property(n, 'penwidth', 2.5), s)
-                print >>sys.stderr, "Highlighting in %s: %s: %s" % (
+                else:
+                    map(lambda n: self.set_property(n, 'penwidth', 2.5), s)
+                print >>sys.stderr, "Highlighting in %s:\n%s: %s" % (
                         color if color else 'bold',
                         msg,
                         ', '.join(map(lambda i: self.property(i, 'label', ''), s)))
