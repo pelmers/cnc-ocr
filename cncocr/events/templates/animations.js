@@ -111,7 +111,7 @@ function Animate(dag) {
     }
 
     function hideAll() {
-        // Hide all nodes and edges. Set next_node to first node.
+        // Hide and disconnect all nodes and edges. Set next_node to first node.
         onAll(hide, hide);
         // initially disconnect everything except the source
         onAll(disconnect);
@@ -119,7 +119,7 @@ function Animate(dag) {
         next_node = 0;
     }
     function showAll() {
-        // Show all nodes and edges. Set next_node to last node + 1.
+        // Show and connect all nodes and edges. Set next_node to last node + 1.
         onAll(show, show);
         onAll(connect);
         next_node = ordering.length;

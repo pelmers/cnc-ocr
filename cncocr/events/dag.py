@@ -159,14 +159,14 @@ class DAG(object):
         '''
         return self._properties[node]
 
-    def remove_node(self, node, is_orphan = False):
+    def remove_node(self, node, parents = None):
         '''
-        Remove some node from the graph
+        Remove a node from the graph
         '''
-        # remove from child set of parents, unless we're told it's an orphan
-        if not is_orphan:
-            for parent in self.parents(node):
-                self.remove_child(parent, node)
+        if not parents:
+            parents = self.parents(node)
+        for parent in self.parents(node):
+            self.remove_child(parent, node)
 
         del self._nodes[node]
         del self._properties[node]

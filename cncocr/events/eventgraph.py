@@ -94,14 +94,14 @@ class EventGraph(DAG):
             # force create a new node id because we want to order steps by
             # running time rather than prescribe time
             new_id = self.create_node_id(action, label, tag, force = True)
-            # remove the old id we used when we added it under prescribe
-            self.remove_node(node_id)
             # add this step to the graph along with get and prescribe edges
             prescriber, gets = self._steps_prescribed[node_id]
             self.add_get_edges(new_id, node_label, gets)
             if prescribe:
                 self.add_prescribe_edge(prescriber, new_id)
             self.style_step(new_id)
+            # remove the old id we used when we added it under prescribe
+            self.remove_node(node_id, parents = gets)
             # track when finalize node runs
             if label.endswith("_finalize"):
                 self.finalize_node = new_id
