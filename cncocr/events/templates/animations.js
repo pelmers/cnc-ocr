@@ -18,7 +18,7 @@ function Animate(dag) {
         return arr;
     })();
     // map node id -> ordering
-    var reverse_ordering = (function() {
+    var inverse_ordering = (function() {
         var o = {};
         for (var i = 0; i < ordering.length; i++)
             o[ordering[i]] = i;
@@ -33,13 +33,31 @@ function Animate(dag) {
     var show_timings = (function() {
         var m = {};
         onAll(null, function(f, t) {
-            var time = reverse_ordering[Math.max(f, t)];
+            var time = inverse_ordering[Math.max(f, t)];
             if (!m[time])
                 m[time] = [];
             m[time].push({from: f, to: t});
         });
         return m;
-    }());
+    })();
+    // map of time -> [nodes whose indegree exceeds 0 at this time]
+    var connect_timings = (function() {
+        var c = {}; // when each node is connected
+        onAll(null, function(f, t) {
+            if (c[t] === undefined)
+                c[t] = ordering.length; // initialize to max time
+            c[t] = Math.min(c[t], inverse_ordering[f]);
+        });
+        // inverse map of c
+        var ic = {}
+        for (var n in c) {
+            if (!c.hasOwnProperty(n)) continue;
+            if (ic[c[n]] === undefined)
+                ic[c[n]] = [];
+            ic[c[n]].push(n);
+        }
+        return ic;
+    })();
 
     function nodeDom(node_id) {
         // Return the DOM node for the given graph node.
@@ -68,6 +86,16 @@ function Animate(dag) {
             edgeDom(node1, node2).style.display = 'block'
     }
 
+    function connect(node) {
+        // Set the opacity of the node to 1.
+        nodeDom(node).style.opacity = '1';
+    }
+
+    function disconnect(node) {
+        // Set the opacity of the node to 0.4.
+        nodeDom(node).style.opacity = '0.4';
+    }
+
     function onAll(onNodes, onEdges) {
         // Call onNodes(n) on each node n, onEdges(f,t) on each edge (f->t).
         onNodes = (onNodes)?onNodes:function() {};
@@ -85,11 +113,15 @@ function Animate(dag) {
     function hideAll() {
         // Hide all nodes and edges. Set next_node to first node.
         onAll(hide, hide);
+        // initially disconnect everything except the source
+        onAll(disconnect);
+        connect(ordering[0]);
         next_node = 0;
     }
     function showAll() {
         // Show all nodes and edges. Set next_node to last node + 1.
         onAll(show, show);
+        onAll(connect);
         next_node = ordering.length;
     }
     function showNext() {
@@ -99,6 +131,9 @@ function Animate(dag) {
         if (show_timings[next_node])
             for (var i = 0; i < show_timings[next_node].length; i++)
                 show(show_timings[next_node][i].from, show_timings[next_node][i].to);
+        if (connect_timings[next_node])
+            for (var i = 0; i < connect_timings[next_node].length; i++)
+                connect(connect_timings[next_node][i]);
         next_node++;
     }
     function hidePrev() {
@@ -108,6 +143,9 @@ function Animate(dag) {
         if (show_timings[next_node])
             for (var i = 0; i < show_timings[next_node].length; i++)
                 hide(show_timings[next_node][i].from, show_timings[next_node][i].to);
+        if (connect_timings[next_node])
+            for (var i = 0; i < connect_timings[next_node].length; i++)
+                disconnect(connect_timings[next_node][i]);
     }
     function showInOrder() {
         // Show the nodes and induced edges in order at predefined intervals (ms).
