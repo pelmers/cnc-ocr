@@ -60,7 +60,6 @@ function Control(animator, dag) {
 window.addEventListener('keypress', function(event) {
         // Bind p to play/pause, [ ] to prev/next, < > to start/end.
         var k = (event.keyCode ? event.keyCode : event.which);
-        console.log(k);
         if (k === 112)            // p
             togglePlay();
         else if (k === 91)        // [

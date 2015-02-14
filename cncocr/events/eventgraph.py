@@ -40,8 +40,8 @@ class EventGraph(DAG):
         self._activity_gets = []
         # list of node id's for steps that have entered running state
         self._steps_run = []
-        # list of node id's for steps that have been prescribed
-        self._steps_prescribed = []
+        # prescribe node id -> (prescriber, [items in get list])
+        self._steps_prescribed = {}
         # list of node id's for items that have been get
         self._items_gotten = []
         # list of node id's for items that have been put
@@ -77,46 +77,67 @@ class EventGraph(DAG):
         node_id = self.create_node_id(action, label, tag)
         node_label = self.create_node_label(action, label, tag)
         if action == actions.PRESCRIBED:
-            # add node for activity, adding any recorded gets
+            # record info about prescriber and gets
+            self._steps_prescribed[node_id] = (self._last_running_activity_tag,
+                                               self._activity_gets[:])
+            # Note: we add this node to the graph now, however if we see it
+            # again as RUNNING we will replace it with a new id to display the
+            # graph in running order
             self.add_get_edges(node_id, node_label, self._activity_gets)
             if prescribe:
                 self.add_prescribe_edge(self._last_running_activity_tag, node_id)
-            # make a step blue
             self.style_step(node_id)
             # clear out the activity get list to prepare for next prescribe
             self._activity_gets = []
-            self._steps_prescribed.append(node_id)
-            # track the finalize node
-            if label.endswith("_finalize"):
-                self.finalize_node = node_id
+
         elif action == actions.RUNNING:
+            # force create a new node id because we want to order steps by
+            # running time rather than prescribe time
+            new_id = self.create_node_id(action, label, tag, force = True)
+            # remove the old id we used when we added it under prescribe
+            self.remove_node(node_id)
+            # add this step to the graph along with get and prescribe edges
+            prescriber, gets = self._steps_prescribed[node_id]
+            self.add_get_edges(new_id, node_label, gets)
+            if prescribe:
+                self.add_prescribe_edge(prescriber, new_id)
+            self.style_step(new_id)
+            # track when finalize node runs
+            if label.endswith("_finalize"):
+                self.finalize_node = new_id
             # record this tag as being the currently running activity
-            self._last_running_activity_tag = node_id
-            self._steps_run.append(node_id)
+            self._last_running_activity_tag = new_id
+            self._steps_run.append(new_id)
+
         elif action == actions.DONE:
             # nothing to do for this action
             pass
+
         elif action == actions.GET_DEP:
             # happens before a step is prescribed, so we keep track of these items
             self._activity_gets.append((node_id, node_label, label))
             self._items_gotten.append(node_id)
+
         elif action == actions.PUT:
             self.add_put_edges(node_id, node_label,
                                label, self._last_running_activity_tag)
             self._items_put.append(node_id)
+
         else:
             print >>sys.stderr, "Unrecognized action %s" % action
 
-    def create_node_id(self, action, label, tag):
+    def create_node_id(self, action, label, tag, force = False):
         """
         Return a node id for the given action, label, tag.
 
-        Node id's are integers in the order of appearance in the log. If
-        create_node_id is called more than once with the same parameters, the
-        same id will be returned each time.
+        Node id's are integers in the order of appearance in the log.
+        If create_node_id is called more than once with the same parameters,
+        the same id will be returned each time.
+        However if force is True, then a new id will be created even if we have
+        seen these arguments before.
         """
         ident = "%s %s" % (label, tag)
-        if ident not in self._cache_node_ids:
+        if ident not in self._cache_node_ids or force:
             self._cache_node_ids[ident] = self._id_count
             self._id_count += 1
         return self._cache_node_ids[ident]
@@ -194,7 +215,7 @@ class EventGraph(DAG):
                         color if color else 'bold',
                         msg,
                         ', '.join(map(lambda i: self.property(i, 'label', ''), s)))
-        warn_on_duplicates(self._steps_prescribed, "prescribed")
+        warn_on_duplicates(self._steps_prescribed.keys(), "prescribed")
         warn_on_duplicates(self._items_put, "put")
         # warn on items gotten but not put or put without get
         gotten_without_put = set(self._items_gotten).difference(set(self._items_put))
@@ -203,10 +224,6 @@ class EventGraph(DAG):
                           styles.color('get_without_put'))
         warn_on_existence(put_without_get, "Items with PUT without GET",
                           styles.color('put_without_get'))
-        # warn on steps prescribed but not run
-        prescribed_without_run = set(self._steps_prescribed).difference(set(self._steps_run))
-        warn_on_existence(prescribed_without_run, "Steps PRESCRIBED without RUNNING",
-                          styles.color('prescribe_without_run'))
         # warn on nodes that have no path to the finalize
         if self.finalize_node is not None:
             trans = self.transpose()

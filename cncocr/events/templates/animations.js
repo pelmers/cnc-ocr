@@ -6,13 +6,26 @@ function Animate(dag) {
     "use strict";
     // time between showing nodes (milliseconds)
     var timestep = 100;
-    // save first node, last node, and the next node to show
-    var start_id = 0, end_id = 0, next_node = 0;
-    while (dag.graph()[end_id] !== undefined) {
-        end_id++;
-    }
-    // we overcounted by 1.
-    end_id--;
+    // The node id's are monotonic increasing in order of appearance, but they
+    // are not necessarily sequential, so here we establish a sequential
+    // ordering by sorting an array of id's
+    var ordering = (function() {
+        var arr = [];
+        onAll(function(n) {
+            arr.push(n);
+        });
+        arr.sort(function(a,b) { return a-b; });
+        return arr;
+    })();
+    // map node id -> ordering
+    var reverse_ordering = (function() {
+        var o = {};
+        for (var i = 0; i < ordering.length; i++)
+            o[ordering[i]] = i;
+        return o;
+    })();
+    // the index in ordering array of the next node to show
+    var next_node = 0;
     // flag to determine whether we are paused
     var paused = false;
     // pre-compute the times at which to show each edge in (O(M))
@@ -20,15 +33,13 @@ function Animate(dag) {
     var show_timings = (function() {
         var m = {};
         onAll(null, function(f, t) {
-            var time = Math.max(f, t);
+            var time = reverse_ordering[Math.max(f, t)];
             if (!m[time])
                 m[time] = [];
             m[time].push({from: f, to: t});
         });
         return m;
     }());
-    // set a property _weight of each node to 1, so we can get crit paths
-    onAll(function(n) { dag.setProperty(n, '_weight', 1); });
 
     function nodeDom(node_id) {
         // Return the DOM node for the given graph node.
@@ -74,17 +85,17 @@ function Animate(dag) {
     function hideAll() {
         // Hide all nodes and edges. Set next_node to first node.
         onAll(hide, hide);
-        next_node = start_id;
+        next_node = 0;
     }
     function showAll() {
         // Show all nodes and edges. Set next_node to last node + 1.
         onAll(show, show);
-        next_node = end_id+1;
+        next_node = ordering.length;
     }
     function showNext() {
         // Show the next node and any induced edges.
         // Increment next_node.
-        show(next_node);
+        show(ordering[next_node]);
         if (show_timings[next_node])
             for (var i = 0; i < show_timings[next_node].length; i++)
                 show(show_timings[next_node][i].from, show_timings[next_node][i].to);
@@ -93,7 +104,7 @@ function Animate(dag) {
     function hidePrev() {
         // Hide the last node shown, and decrement next_node.
         next_node--;
-        hide(next_node);
+        hide(ordering[next_node]);
         if (show_timings[next_node])
             for (var i = 0; i < show_timings[next_node].length; i++)
                 hide(show_timings[next_node][i].from, show_timings[next_node][i].to);
@@ -103,21 +114,8 @@ function Animate(dag) {
         // Stop if the pause() method is called.
         function recur() {
             // show next while we're not paused and not at the end
-            if (next_node <= end_id && !paused) {
+            if (next_node < ordering.length && !paused) {
                 showNext();
-                // recur sets itself on a timeout using given timestep
-                setTimeout(recur, getTimestep());
-            }
-        }
-        recur();
-    }
-    function hideInOrder() {
-        // Hide the nodes and induced edges in order at predefined intervals (ms).
-        // Stop if the pause() method is called.
-        function recur() {
-            // show next while we're not paused and not at the end
-            if (next_node <= end_id && !paused) {
-                hidePrev();
                 // recur sets itself on a timeout using given timestep
                 setTimeout(recur, getTimestep());
             }
@@ -153,7 +151,6 @@ function Animate(dag) {
         hideAll: hideAll,
         showAll: showAll,
         showInOrder: showInOrder,
-        hideInOrder: hideInOrder,
         showNext: showNext,
         hidePrev: hidePrev,
         paused: _paused,

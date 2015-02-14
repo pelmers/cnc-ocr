@@ -50,4 +50,7 @@
     animator.showInOrder();
     // Attach controls to the animations.
     Control(animator, window.dag);
+    // set the speed slider's width to same as the table
+    document.querySelector("#timestep").style.width =
+        document.querySelector("#controls").getBoundingClientRect().width + 'px';
 })();
