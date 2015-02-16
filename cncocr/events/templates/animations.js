@@ -53,10 +53,16 @@ function Animate(dag) {
     // {visible item nodes + run step nodes}
     var show_timings = (function() {
         var m = {};
+        // for items go by shown time, for steps go by running time
+        // unless it's a prescribe edge, then go by show time for steps too
+        function pickTime(n, f, t) {
+            return (dag.property(n, "type") === "item")?
+                n:(dag.edgeProperty(f,t,"prescribe")?
+                        n:time_connected[n]);
+        }
         onAll(null, function(f, t) {
-            // for items go by shown time, for steps go by running time
-            var tf = (dag.property(f, "type") === "item")?f:time_connected[f];
-            var tt = (dag.property(t, "type") === "item")?t:time_connected[t];
+            var tf = pickTime(f, f, t);
+            var tt = pickTime(t, f, t);
             var time = Math.max(tf, tt);
             if (!m[time])
                 m[time] = [];

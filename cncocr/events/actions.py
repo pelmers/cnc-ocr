@@ -1,3 +1,4 @@
+# Define action name constants
 PRESCRIBED = 'PRESCRIBED'
 RUNNING = 'RUNNING'
 PUT = 'PUT'

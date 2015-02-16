@@ -51,8 +51,11 @@
                 from = parseInt(split[0]),
                 to = parseInt(split[1]);
             g.addEdge(from, to);
-            g.setEdgeProperty(from, to, "color",
-                              path.getAttributeNS(null, "stroke"));
+            // dashed edge means prescribe
+            if (path.getAttribute("stroke-dasharray"))
+                g.setEdgeProperty(from, to, "prescribe", true);
+            else
+                g.setEdgeProperty(from, to, "prescribe", false);
             g.setEdgeProperty(from, to, "_dom", edges[i]);
         }
         return g;

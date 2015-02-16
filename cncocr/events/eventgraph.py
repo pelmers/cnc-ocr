@@ -18,6 +18,8 @@ class EventGraph(DAG):
         event_log parameter should be a list of strings, each element being a
         line in the event log.
         prescribe indicates whether prescribe edges will be added to the graph.
+        html indicates whether the graph should be prepared for HTML output.
+        This option embeds a bit of extra ordering information in the graph.
         """
         super(EventGraph, self).__init__()
         self.init_vars(prescribe, html)
@@ -135,7 +137,7 @@ class EventGraph(DAG):
         return self._cache_node_ids[ident]
 
     def create_node_label(self, action, label, tag):
-        """Return human-readable label for given action, label, tag"""
+        """Return human-readable label for given action, label, tag."""
         return "%s: %s" % (label, tag.replace(", ", ","))
 
     def mark_running_time(self, step_id, running_time):
@@ -227,4 +229,4 @@ class EventGraph(DAG):
             # dfs, track all the nodes we visited
             trans.dfs(self.finalize_node, visitor = visits.add)
             warn_on_existence(set(self).difference(visits),
-                              "Nodes not on path to FINALIZE")
+                              "Nodes without path to FINALIZE")
