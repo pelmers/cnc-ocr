@@ -50,6 +50,11 @@ function DAG(graph) {
         g[id] = children;
     }
 
+    function hasNode(id) {
+        // Return whether id is defined.
+        return g[id] !== undefined;
+    }
+
     function addEdge(from, to) {
         // Add an edge from one node to another
         g[from].push(to);
@@ -263,6 +268,7 @@ function DAG(graph) {
         graph: _graph,
         addNode: addNode,
         addEdge: addEdge,
+        hasNode: hasNode,
         children: children,
 
         // properties

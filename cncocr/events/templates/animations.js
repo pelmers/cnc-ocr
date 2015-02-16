@@ -6,26 +6,15 @@ function Animate(dag) {
     "use strict";
     // time between showing nodes (milliseconds)
     var timestep = 100;
-    // The node id's are monotonic increasing in order of appearance, but they
-    // are not necessarily sequential, so here we establish a sequential
-    // ordering by sorting an array of id's
-    var ordering = (function() {
-        var arr = [];
+    var max_time = (function() {
+        var m = 0;
         onAll(function(n) {
-            arr.push(n);
+            m = Math.max(m,n);
         });
-        arr.sort(function(a,b) { return a-b; });
-        return arr;
+        return m;
     })();
-    // map node id -> ordering index
-    var inverse_ordering = (function() {
-        var o = {};
-        for (var i = 0; i < ordering.length; i++)
-            o[ordering[i]] = i;
-        return o;
-    })();
-    // the index in ordering array of the next node to show
-    var next_node = 0;
+    // the current time we are at, in range [0, max time]
+    var current_time = 0;
     // flag to determine whether we are paused
     var paused = false;
 
@@ -35,18 +24,12 @@ function Animate(dag) {
         // steps turn opaque when they "run"
         onAll(function(n) {
             var r = dag.property(n, "running");
-            if (!r) return;
-            var i;
-            // find the time before the first node that exceeds running time
-            for (i = 0; r > ordering[i] && i < ordering.length; i++);
-            c[n] = i;
+            c[n] = (r)?r:max_time;
         });
         // items turn opaque when their in-degree exceeds 0 from a running step
         onAll(null, function(f, t) {
-            if (c[t] === undefined)
-                c[t] = ordering.length;
-            if (dag.property(t, "type") !== "item") return;
-            c[t] = Math.min(c[t], c[f]);
+            if (dag.property(t, "type") === "item")
+                c[t] = Math.min(c[t], c[f]);
         });
         return c;
     })();
@@ -71,10 +54,8 @@ function Animate(dag) {
         var m = {};
         onAll(null, function(f, t) {
             // for items go by shown time, for steps go by running time
-            var tf = (dag.property(f, "type") === "item")?
-                inverse_ordering[f]:time_connected[f];
-            var tt = (dag.property(t, "type") === "item")?
-                inverse_ordering[t]:time_connected[t];
+            var tf = (dag.property(f, "type") === "item")?f:time_connected[f];
+            var tt = (dag.property(t, "type") === "item")?t:time_connected[t];
             var time = Math.max(tf, tt);
             if (!m[time])
                 m[time] = [];
@@ -135,48 +116,50 @@ function Animate(dag) {
     }
 
     function hideAll() {
-        // Hide and disconnect all nodes and edges. Set next_node to first node.
+        // Hide and disconnect all nodes and edges. Set current_time to 0.
         onAll(hide, hide);
         // initially disconnect everything except the source
         onAll(disconnect);
-        connect(ordering[0]);
-        next_node = 0;
+        connect(0);
+        current_time = 0;
     }
     function showAll() {
-        // Show and connect all nodes and edges. Set next_node to last node + 1.
+        // Show and connect all nodes and edges. Set current_time to max_time.
         onAll(show, show);
         onAll(connect);
-        next_node = ordering.length;
+        current_time = max_time;
     }
     function showNext() {
         // Show the next node and any induced edges.
-        // Increment next_node.
-        show(ordering[next_node]);
-        if (show_timings[next_node])
-            for (var i = 0; i < show_timings[next_node].length; i++)
-                show(show_timings[next_node][i].from, show_timings[next_node][i].to);
-        if (connect_timings[next_node])
-            for (var i = 0; i < connect_timings[next_node].length; i++)
-                connect(connect_timings[next_node][i]);
-        next_node++;
+        // Increment current_time.
+        if (dag.hasNode(current_time))
+            show(current_time);
+        if (show_timings[current_time])
+            for (var i = 0; i < show_timings[current_time].length; i++)
+                show(show_timings[current_time][i].from, show_timings[current_time][i].to);
+        if (connect_timings[current_time])
+            for (var i = 0; i < connect_timings[current_time].length; i++)
+                connect(connect_timings[current_time][i]);
+        current_time++;
     }
     function hidePrev() {
-        // Hide the last node shown, and decrement next_node.
-        next_node--;
-        hide(ordering[next_node]);
-        if (show_timings[next_node])
-            for (var i = 0; i < show_timings[next_node].length; i++)
-                hide(show_timings[next_node][i].from, show_timings[next_node][i].to);
-        if (connect_timings[next_node])
-            for (var i = 0; i < connect_timings[next_node].length; i++)
-                disconnect(connect_timings[next_node][i]);
+        // Hide the last node shown, and decrement current_time.
+        current_time--;
+        if (dag.hasNode(current_time))
+            hide(current_time);
+        if (show_timings[current_time])
+            for (var i = 0; i < show_timings[current_time].length; i++)
+                hide(show_timings[current_time][i].from, show_timings[current_time][i].to);
+        if (connect_timings[current_time])
+            for (var i = 0; i < connect_timings[current_time].length; i++)
+                disconnect(connect_timings[current_time][i]);
     }
     function showInOrder() {
         // Show the nodes and induced edges in order at predefined intervals (ms).
         // Stop if the pause() method is called.
         function recur() {
             // show next while we're not paused and not at the end
-            if (next_node < ordering.length && !paused) {
+            if (current_time < max_time && !paused) {
                 showNext();
                 // recur sets itself on a timeout using given timestep
                 setTimeout(recur, getTimestep());
