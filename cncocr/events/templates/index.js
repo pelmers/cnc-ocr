@@ -11,12 +11,31 @@
             nodes = svgHandle.querySelectorAll(".node"),
             g = DAG();
         for (var i = 0; i < nodes.length; i++) {
-            var id = parseInt(nodes[i].id),
+            var sp = nodes[i].id.split(" "),
+                id = parseInt(sp.shift()),
                 shape = nodes[i].querySelector("ellipse");
             g.addNode(id);
-            if (shape === null) {
+            if (shape) {
+                g.setProperty(id, "type", "step");
+                var link = nodes[i].querySelector("a");
+                /* This is kind of a hack, but step nodes have a "prescribe
+                 * time" and a "running time," and we want to show them at the
+                 * prescribe time but leave them greyed out until they run. So
+                 * we set the "href" of the step node to the running time. Here
+                 * we pull that out and remove the anchor element.
+                 */
+                if (link) {
+                    g.setProperty(id, "running", parseInt(link.getAttribute("xlink:href")));
+                    while (link.firstChild)
+                        link.parentNode.insertBefore(link.firstChild, link);
+                    link.parentNode.removeChild(link);
+                }
+            }
+            else {
                 // try polygon
                 shape = nodes[i].querySelector("polygon");
+                if (shape)
+                    g.setProperty(id, "type", "item");
             }
             if (shape != null) {
                 g.setProperty(id, "color",

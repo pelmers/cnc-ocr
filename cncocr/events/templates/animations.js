@@ -17,7 +17,7 @@ function Animate(dag) {
         arr.sort(function(a,b) { return a-b; });
         return arr;
     })();
-    // map node id -> ordering
+    // map node id -> ordering index
     var inverse_ordering = (function() {
         var o = {};
         for (var i = 0; i < ordering.length; i++)
@@ -28,35 +28,59 @@ function Animate(dag) {
     var next_node = 0;
     // flag to determine whether we are paused
     var paused = false;
+
+    // map of node id -> time connected (i.e. to turn opaque)
+    var time_connected = (function() {
+        var c = {};
+        // steps turn opaque when they "run"
+        onAll(function(n) {
+            var r = dag.property(n, "running");
+            if (!r) return;
+            var i;
+            // find the time before the first node that exceeds running time
+            for (i = 0; r > ordering[i] && i < ordering.length; i++);
+            c[n] = i;
+        });
+        // items turn opaque when their in-degree exceeds 0 from a running step
+        onAll(null, function(f, t) {
+            if (c[t] === undefined)
+                c[t] = ordering.length;
+            if (dag.property(t, "type") !== "item") return;
+            c[t] = Math.min(c[t], c[f]);
+        });
+        return c;
+    })();
+    // map of time -> [nodes that turn opaque at this time]
+    // one-to-many inverse map of time_connected
+    var connect_timings = (function() {
+        var ic = {}
+        for (var n in time_connected) {
+            if (!time_connected.hasOwnProperty(n)) continue;
+            if (ic[time_connected[n]] === undefined)
+                ic[time_connected[n]] = [];
+            ic[time_connected[n]].push(n);
+        }
+        return ic;
+    })();
+
     // pre-compute the times at which to show each edge in (O(M))
     // map of time -> [{from:n1, to:n2}] for each edge at given time
+    // At each time we display the induced subgraph of
+    // {visible item nodes + run step nodes}
     var show_timings = (function() {
         var m = {};
         onAll(null, function(f, t) {
-            var time = inverse_ordering[Math.max(f, t)];
+            // for items go by shown time, for steps go by running time
+            var tf = (dag.property(f, "type") === "item")?
+                inverse_ordering[f]:time_connected[f];
+            var tt = (dag.property(t, "type") === "item")?
+                inverse_ordering[t]:time_connected[t];
+            var time = Math.max(tf, tt);
             if (!m[time])
                 m[time] = [];
             m[time].push({from: f, to: t});
         });
         return m;
-    })();
-    // map of time -> [nodes whose indegree exceeds 0 at this time]
-    var connect_timings = (function() {
-        var c = {}; // when each node is connected
-        onAll(null, function(f, t) {
-            if (c[t] === undefined)
-                c[t] = ordering.length; // initialize to max time
-            c[t] = Math.min(c[t], inverse_ordering[f]);
-        });
-        // inverse map of c
-        var ic = {}
-        for (var n in c) {
-            if (!c.hasOwnProperty(n)) continue;
-            if (ic[c[n]] === undefined)
-                ic[c[n]] = [];
-            ic[c[n]].push(n);
-        }
-        return ic;
     })();
 
     function nodeDom(node_id) {
@@ -98,15 +122,15 @@ function Animate(dag) {
 
     function onAll(onNodes, onEdges) {
         // Call onNodes(n) on each node n, onEdges(f,t) on each edge (f->t).
-        onNodes = (onNodes)?onNodes:function() {};
-        onEdges = (onEdges)?onEdges:function() {};
         for (var n in dag.graph()) {
             if (!dag.graph().hasOwnProperty(n))
                 continue;
-            onNodes(n);
+            if (onNodes)
+                onNodes(n);
             var edges = dag.graph()[n];
-            for (var i = 0; i < edges.length; i++)
-                onEdges(n, edges[i]);
+            if (onEdges)
+                for (var i = 0; i < edges.length; i++)
+                    onEdges(n, edges[i]);
         }
     }
 

@@ -11,7 +11,7 @@ class EventGraph(DAG):
     Directed acyclic graph for a CnC-OCR event log. Assumes that execution is
     serialized, i.e. no two activities can be running at the same time.
     '''
-    def __init__(self, event_log, prescribe=True):
+    def __init__(self, event_log, prescribe=True, html=False):
         """
         EventGraph: create a DAG representing an event log
 
@@ -20,18 +20,21 @@ class EventGraph(DAG):
         prescribe indicates whether prescribe edges will be added to the graph.
         """
         super(EventGraph, self).__init__()
-        self.init_vars()
+        self.init_vars(prescribe, html)
         for event in event_log:
-            self.process_event(event, prescribe)
+            self.process_event(event)
         self.post_process()
 
-    def init_vars(self):
+    def init_vars(self, prescribe, html):
         """
         Initialize instance variables to track events.
 
         Initialize internal variables which track state changes during
         process_event. Also put the init step on the graph as node 0.
         """
+        # whether to prescribe, whether it's html output
+        self.prescribe = prescribe
+        self.html = html
         # id of the next node (start at 1 since init = 0)
         self._id_count = 1
         # action_label_tag identifier -> node id
@@ -50,16 +53,17 @@ class EventGraph(DAG):
         self.add_node(0)
         self.set_property(0, "label", "init")
         self.style_step(0)
+        if self.html:
+            self.mark_running_time(0, 1)
         # id of last step to enter running state
         self._last_running_activity_tag = 0
         # the id of the finalize node
         self.finalize_node = None
 
-    def process_event(self, event, prescribe):
+    def process_event(self, event):
         """
         Add event, a line from the event log, to the DAG.
 
-        Do not add prescribe edges if prescribe is False.
         Requires that init_vars be called first, and expects that the rest of
         the event log up to this event has already been processed.
         """
@@ -77,37 +81,25 @@ class EventGraph(DAG):
         node_id = self.create_node_id(action, label, tag)
         node_label = self.create_node_label(action, label, tag)
         if action == actions.PRESCRIBED:
-            # record info about prescriber and gets
-            self._steps_prescribed[node_id] = (self._last_running_activity_tag,
-                                               self._activity_gets[:])
-            # Note: we add this node to the graph now, however if we see it
-            # again as RUNNING we will replace it with a new id to display the
-            # graph in running order
             self.add_get_edges(node_id, node_label, self._activity_gets)
-            if prescribe:
+            if self.prescribe:
                 self.add_prescribe_edge(self._last_running_activity_tag, node_id)
             self.style_step(node_id)
             # clear out the activity get list to prepare for next prescribe
             self._activity_gets = []
+            # track the finalize node
+            if label.endswith("_finalize"):
+                self.finalize_node = node_id
 
         elif action == actions.RUNNING:
-            # force create a new node id because we want to order steps by
-            # running time rather than prescribe time
-            new_id = self.create_node_id(action, label, tag, force = True)
-            # add this step to the graph along with get and prescribe edges
-            prescriber, gets = self._steps_prescribed[node_id]
-            self.add_get_edges(new_id, node_label, gets)
-            if prescribe:
-                self.add_prescribe_edge(prescriber, new_id)
-            self.style_step(new_id)
-            # remove the old id we used when we added it under prescribe
-            self.remove_node(node_id, parents = gets)
-            # track when finalize node runs
-            if label.endswith("_finalize"):
-                self.finalize_node = new_id
+            # create a new id which notes when this node runs
+            # only do this for html output because it's used for animations
+            if self.html:
+                self.mark_running_time(node_id,
+                        self.create_node_id(action, label, tag, force = True))
             # record this tag as being the currently running activity
-            self._last_running_activity_tag = new_id
-            self._steps_run.append(new_id)
+            self._last_running_activity_tag = node_id
+            self._steps_run.append(node_id)
 
         elif action == actions.DONE:
             # nothing to do for this action
@@ -146,9 +138,13 @@ class EventGraph(DAG):
         """Return human-readable label for given action, label, tag"""
         return "%s: %s" % (label, tag.replace(", ", ","))
 
+    def mark_running_time(self, step_id, running_time):
+        """Do something to step_id to indicate that it runs at running_time."""
+        self.set_property(step_id, "href", "%d" % running_time)
+
     def style_step(self, step_id):
         """Style the node for a step."""
-        self.set_property(step_id, 'color', styles.color('step'))
+        self.set_property(step_id, "color", styles.color('step'))
 
     def style_item(self, item_id, label, collection):
         """Style the node for an item."""
