@@ -9,9 +9,10 @@ function Animate(dag) {
     var max_time = (function() {
         var m = 0;
         onAll(function(n) {
-            m = Math.max(m,n);
+            // for integers, ~~x = x and ~~undefined = 0
+            m = Math.max(m,n,~~dag.property(n, "running"));
         });
-        return m;
+        return m+1;
     })();
     // the current time we are at, in range [0, max time]
     var current_time = 0;
