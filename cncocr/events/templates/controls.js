@@ -57,7 +57,7 @@ function Control(animator, dag) {
         animator.setTimestep(parseInt(ts.max)+1-parseInt(ts.value));
     });
 
-window.addEventListener('keypress', function(event) {
+    window.addEventListener('keypress', function(event) {
         // Bind p to play/pause, [ ] to prev/next, < > to start/end.
         var k = (event.keyCode ? event.keyCode : event.which);
         if (k === 112)            // p

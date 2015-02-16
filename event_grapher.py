@@ -17,7 +17,11 @@ def embed_b64(name):
     basepath = join(dirname(getfile(EventGraph)), 'templates')
     with open(join(basepath, name), "rb") as f:
         return b64encode(f.read())
+# Include a file directly without any parsing
+def include_raw(name):
+    return Markup(loader.get_source(templateEnv, name)[0])
 templateEnv.globals['embed_b64'] = embed_b64
+templateEnv.globals['include_raw'] = include_raw
 
 def main():
     arg_parser = ArgumentParser(prog="cncocr_eg",
