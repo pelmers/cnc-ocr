@@ -4,22 +4,25 @@
 import subprocess
 from argparse import ArgumentParser
 from base64 import b64encode
-from os.path import join, dirname
+from os.path import join
 from jinja2 import Environment, PackageLoader, Markup
 from cncocr.events.eventgraph import EventGraph
-from inspect import getfile
 
 loader = PackageLoader('cncocr.events.eventgraph')
 templateEnv = Environment(loader = loader)
 
 # Add a base64-encoding filter to Jinja (for embedding icons)
 def embed_b64(name):
-    basepath = join(dirname(getfile(EventGraph)), 'templates')
-    with open(join(basepath, name), "rb") as f:
+    path = loader.provider.get_resource_filename(loader.manager,
+                                                 join(loader.package_path,
+                                                      name))
+    with open(path, "rb") as f:
         return b64encode(f.read())
+
 # Include a file directly without any parsing
 def include_raw(name):
     return Markup(loader.get_source(templateEnv, name)[0])
+
 templateEnv.globals['embed_b64'] = embed_b64
 templateEnv.globals['include_raw'] = include_raw
 
