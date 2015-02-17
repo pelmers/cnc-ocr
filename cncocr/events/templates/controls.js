@@ -1,11 +1,12 @@
 /**
  * Attach controls to given dag animator.
  */
-function Control(animator, dag) {
+function Control(animator) {
     "use strict";
     var play_src = document.querySelector("#hidden_icon > img").src,
         playpause_img = document.querySelector("#playpause > img"),
-        pause_src = playpause_img.src;
+        pause_src = playpause_img.src,
+        ts = document.querySelector("#timestep");
     function pause() {
         // Pause the animation and show the play button.
         playpause_img.src = play_src;
@@ -52,7 +53,6 @@ function Control(animator, dag) {
     document.querySelector("#end").addEventListener('click', toEnd);
     // the timestep slider is labeled "speed" but we want "delay"
     // so we subtract from max to get the timestep value
-    var ts = document.querySelector("#timestep");
     ts.addEventListener('change', function() {
         animator.setTimestep(parseInt(ts.max)+1-parseInt(ts.value));
     });
@@ -73,4 +73,5 @@ function Control(animator, dag) {
         if (k === 112 || k === 91 || k === 93 || k === 60 || k === 62)
             event.stopPropagation();
     });
+    ts.value = parseInt(ts.max) - animator.getTimestep();
 }

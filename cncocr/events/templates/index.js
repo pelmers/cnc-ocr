@@ -11,8 +11,7 @@
             nodes = svgHandle.querySelectorAll(".node"),
             g = DAG();
         for (var i = 0; i < nodes.length; i++) {
-            var sp = nodes[i].id.split(" "),
-                id = parseInt(sp.shift()),
+            var id = parseInt(nodes[i].id),
                 shape = nodes[i].querySelector("ellipse");
             g.addNode(id);
             if (shape) {
@@ -26,22 +25,17 @@
                  */
                 if (link) {
                     g.setProperty(id, "running", parseInt(link.getAttribute("xlink:href")));
+                    // insert the <a> element's children into its parent, then remove
                     while (link.firstChild)
                         link.parentNode.insertBefore(link.firstChild, link);
                     link.parentNode.removeChild(link);
                 }
-            }
-            else {
-                // try polygon
+            } else {
+                // try polygon (aka rectangle)
                 shape = nodes[i].querySelector("polygon");
                 if (shape)
                     g.setProperty(id, "type", "item");
             }
-            if (shape != null) {
-                g.setProperty(id, "color",
-                        shape.getAttributeNS(null, "stroke"));
-            }
-            g.setProperty(id, "label", nodes[i].querySelector("text").innerHTML);
             g.setProperty(id, "_dom", nodes[i]);
         }
         for (var i = 0; i < edges.length; i++) {
@@ -61,17 +55,12 @@
         return g;
     }
 
-    // export for debugging
-    window.dag = svgToDAG(document.querySelector("#image_data > svg"));
-
-    var animator = Animate(window.dag);
+    var dag = svgToDAG(document.querySelector("#image_data > svg")),
+        animator = Animate(dag);
     animator.hideAll();
-    // We want showing to take no longer than 10000 ms
-    var maxTotalTime = 10000;
-    animator.setTimestep(Math.min(maxTotalTime / window.dag.numNodes(), 100));
     animator.showInOrder();
     // Attach controls to the animations.
-    Control(animator, window.dag);
+    Control(animator);
     // set the speed slider's width to same as the table
     document.querySelector("#timestep").style.width =
         document.querySelector("#controls").getBoundingClientRect().width + 'px';
