@@ -51,7 +51,7 @@ function Control(animator, dag) {
     document.querySelector("#next").addEventListener('click', next);
     document.querySelector("#end").addEventListener('click', toEnd);
     // the timestep slider is labeled "speed" but we want "delay"
-    // so we take max-slider to get the timestep value
+    // so we subtract from max to get the timestep value
     var ts = document.querySelector("#timestep");
     ts.addEventListener('change', function() {
         animator.setTimestep(parseInt(ts.max)+1-parseInt(ts.value));

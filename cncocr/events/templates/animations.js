@@ -49,21 +49,18 @@ function Animate(dag) {
 
     // pre-compute the times at which to show each edge in (O(M))
     // map of time -> [{from:n1, to:n2}] for each edge at given time
-    // At each time we display the induced subgraph of
-    // {visible item nodes + run step nodes}
     var show_timings = (function() {
-        var m = {};
-        // for items go by shown time, for steps go by running time
-        // unless it's a prescribe edge, then go by show time for steps too
-        function pickTime(n, f, t) {
-            return (dag.property(n, "type") === "item")?
-                n:(dag.edgeProperty(f,t,"prescribe")?
-                        n:time_connected[n]);
+        // go by show time for get and prescribe edges, but only show put edges
+        // when the step is connected (i.e. run)
+        function pickTime(f, t) {
+            if (dag.property(f, "type") === "item" ||
+                    dag.edgeProperty(f,t,"prescribe"))
+                return Math.max(f, t);
+            return Math.max(time_connected[f],t);
         }
+        var m = {};
         onAll(null, function(f, t) {
-            var tf = pickTime(f, f, t);
-            var tt = pickTime(t, f, t);
-            var time = Math.max(tf, tt);
+            var time = pickTime(f, t);
             if (!m[time])
                 m[time] = [];
             m[time].push({from: f, to: t});
@@ -76,7 +73,7 @@ function Animate(dag) {
         return dag.property(node_id, '_dom');
     }
     function edgeDom(from, to) {
-        // Return the DOM node for the given graph node.
+        // Return the DOM node for the given graph edge.
         return dag.edgeProperty(from, to, '_dom');
     }
 
@@ -111,14 +108,13 @@ function Animate(dag) {
     function onAll(onNodes, onEdges) {
         // Call onNodes(n) on each node n, onEdges(f,t) on each edge (f->t).
         for (var n in dag.graph()) {
-            if (!dag.graph().hasOwnProperty(n))
-                continue;
-            if (onNodes)
-                onNodes(n);
-            var edges = dag.graph()[n];
-            if (onEdges)
+            if (!dag.graph().hasOwnProperty(n)) continue;
+            if (onNodes) onNodes(n);
+            if (onEdges) {
+                var edges = dag.graph()[n];
                 for (var i = 0; i < edges.length; i++)
                     onEdges(n, edges[i]);
+            }
         }
     }
 
