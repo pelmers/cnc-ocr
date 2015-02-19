@@ -325,13 +325,14 @@ class DAG(object):
             pl[n] = 1 + max([0]+[pl.get(p, 0) for p in tpose.children(n)])
         return pl[nodes[-1]]
 
-    def dump_graph_dot(self, name='DAG'):
+    def dump_graph_dot(self, name='DAG', **kwargs):
         """
         Return string of graph in .dot format.
 
         All edge and node properties not prefixed with _ are included in the dot output.
+        kwargs are assumed to be graph-level attributes, like rankdir.
         """
-        output = ['node [fontname="%s",fontsize="%s"]' % ("sans-serif", "12")]
+        output = ['node [fontname="%s",fontsize="%s"]' % ("sans-serif", "10")]
         for i in self:
             # node
             output.append("%s [id=%s,%s]" % (i, '"%s"' % i, ','.join(['%s="%s"' % (k,v) for k, v in
@@ -342,5 +343,6 @@ class DAG(object):
                 output.append("%s -> %s [id=%s,%s]" % (i, child, '"%s->%s"' % (i, child),
                     ','.join(['%s="%s"' % (k,v) for k, v in
                     self.edge_properties(i,child).items() if not k.startswith('_')])))
-        output = 'digraph "%s" {\n%s}\n' % (name, '\n'.join(output))
+        opts = ','.join(["%s=%s" % (k,v) for (k,v) in kwargs.items()])
+        output = 'digraph "%s" {\n%s\n%s}\n' % (name, opts, '\n'.join(output))
         return output
