@@ -332,7 +332,7 @@ class DAG(object):
         All edge and node properties not prefixed with _ are included in the dot output.
         kwargs are assumed to be graph-level attributes, like rankdir.
         """
-        output = ['node [fontname="%s",fontsize="%s"]' % ("sans-serif", "10")]
+        output = ['node [fontname="%s",fontsize="%s"]' % ("sans-serif", "12")]
         for i in self:
             # node
             output.append("%s [id=%s,%s]" % (i, '"%s"' % i, ','.join(['%s="%s"' % (k,v) for k, v in
@@ -343,6 +343,6 @@ class DAG(object):
                 output.append("%s -> %s [id=%s,%s]" % (i, child, '"%s->%s"' % (i, child),
                     ','.join(['%s="%s"' % (k,v) for k, v in
                     self.edge_properties(i,child).items() if not k.startswith('_')])))
-        opts = ','.join(["%s=%s" % (k,v) for (k,v) in kwargs.items()])
+        opts = '\n'.join(["%s=%s" % (k,v) for (k,v) in kwargs.items()])
         output = 'digraph "%s" {\n%s\n%s}\n' % (name, opts, '\n'.join(output))
         return output

@@ -18,6 +18,8 @@ function Animate(dag) {
     var current_time = 0;
     // flag to determine whether we are paused
     var paused = false;
+    // flag to determine whether to autoscroll to new elements
+    var autoscroll = false;
 
     // map of node id -> time connected (i.e. to turn opaque)
     var time_connected = (function() {
@@ -25,7 +27,7 @@ function Animate(dag) {
         // steps turn opaque when they "run"
         onAll(function(n) {
             var r = dag.property(n, "running");
-            c[n] = (r)?r:max_time;
+            c[n] = (r)?r:(max_time+1);
         });
         // items turn opaque when their in-degree exceeds 0 from a running step
         onAll(null, function(f, t) {
@@ -89,8 +91,11 @@ function Animate(dag) {
     function show(node1, node2) {
         // Set node or edge style to display:block
         // If one arg given, show node. If two, show edge.
-        if (node2 === undefined)
+        if (node2 === undefined) {
             nodeDom(node1).style.display = 'block';
+            if (autoscroll)
+                scrollTo(node1);
+        }
         else
             edgeDom(node1, node2).style.display = 'block'
     }
@@ -98,6 +103,8 @@ function Animate(dag) {
     function connect(node) {
         // Set the opacity of the node to 1.
         nodeDom(node).style.opacity = '1';
+        if (autoscroll)
+            scrollTo(node);
     }
 
     function disconnect(node) {
@@ -119,7 +126,7 @@ function Animate(dag) {
     }
 
     function hideAll() {
-        // Hide and disconnect all nodes and edges. Set current_time to 0.
+        // Set graph state to time = 0.
         onAll(hide, hide);
         // initially disconnect everything except the source
         onAll(disconnect);
@@ -127,16 +134,35 @@ function Animate(dag) {
         current_time = 0;
     }
     function showAll() {
-        // Show and connect all nodes and edges. Set current_time to max_time.
+        // Advance graph state to time = max_time.
         onAll(show, show);
-        onAll(connect);
+        for (var t in connect_timings) {
+            if (!connect_timings.hasOwnProperty(t)) continue;
+            if (t > max_time) continue;
+            for (var i = 0; i < connect_timings[t].length; i++)
+                connect(connect_timings[t][i]);
+        }
         current_time = max_time;
+    }
+    function scrollTo(node) {
+        // Scroll the window to this node.
+        // If the node is already visible, do not scroll.
+        // Otherwise move the viewport such that the node is at top of screen.
+        var d = nodeDom(node),
+            r = d.getBoundingClientRect();
+        // check that node is not in current viewport, then scroll.
+        if (r.top < 0 ||
+                r.left < 0 ||
+                r.bottom > window.innerHeight ||
+                r.right > window.innerWidth)
+            window.scrollTo(r.left - r.width, r.top - r.height);
     }
     function showNext() {
         // Show the next node and any induced edges.
         // Increment current_time.
-        if (dag.hasNode(current_time))
+        if (dag.hasNode(current_time)) {
             show(current_time);
+        }
         if (show_timings[current_time])
             for (var i = 0; i < show_timings[current_time].length; i++)
                 show(show_timings[current_time][i].from, show_timings[current_time][i].to);
@@ -148,8 +174,9 @@ function Animate(dag) {
     function hidePrev() {
         // Hide the last node shown, and decrement current_time.
         current_time--;
-        if (dag.hasNode(current_time))
+        if (dag.hasNode(current_time)) {
             hide(current_time);
+        }
         if (show_timings[current_time])
             for (var i = 0; i < show_timings[current_time].length; i++)
                 hide(show_timings[current_time][i].from, show_timings[current_time][i].to);
@@ -191,6 +218,14 @@ function Animate(dag) {
         // Set timestep between showing nodes to given value in milliseconds.
         timestep = ts;
     }
+    function setAutoscroll(bool) {
+        // Set whether to autoscroll during animation.
+        autoscroll = bool;
+    }
+    function isAutoscroll() {
+        // Return whether autoscrolling is set.
+        return autoscroll;
+    }
 
     return {
         show: show,
@@ -206,5 +241,7 @@ function Animate(dag) {
         unpause: unpause,
         getTimestep: getTimestep,
         setTimestep: setTimestep,
+        setAutoscroll: setAutoscroll,
+        isAutoscroll: isAutoscroll,
     };
 }

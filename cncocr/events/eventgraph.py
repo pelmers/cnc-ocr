@@ -225,8 +225,7 @@ class EventGraph(DAG):
         # warn on nodes that have no path to the finalize
         if self.finalize_node is not None:
             trans = self.transpose()
-            visits = set()
-            # dfs, track all the nodes we visited
-            trans.dfs(self.finalize_node, visitor = visits.add)
+            visits = {self.finalize_node}
+            trans.bfs(self.finalize_node, visitor = visits.add)
             warn_on_existence(set(self).difference(visits),
-                              "Nodes without path to FINALIZE")
+                            "Nodes without path to FINALIZE")

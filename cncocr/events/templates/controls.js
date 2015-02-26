@@ -6,7 +6,8 @@ function Control(animator) {
     var play_src = document.querySelector("#hidden_icon > img").src,
         playpause_img = document.querySelector("#playpause > img"),
         pause_src = playpause_img.src,
-        ts = document.querySelector("#timestep");
+        ts = document.querySelector("#timestep"),
+        as = document.querySelector("#autoscroll");
     function pause() {
         // Pause the animation and show the play button.
         playpause_img.src = play_src;
@@ -55,6 +56,9 @@ function Control(animator) {
     // so we subtract from max to get the timestep value
     ts.addEventListener('change', function() {
         animator.setTimestep(parseInt(ts.max)+1-parseInt(ts.value));
+    });
+    as.addEventListener('click', function() {
+        animator.setAutoscroll(as.checked);
     });
 
     window.addEventListener('keypress', function(event) {
