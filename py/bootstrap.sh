@@ -14,13 +14,14 @@ if ! [ -d venv ]; then
     VENV="virtualenv-1.11.6"
     VENV_URL="$PYPI_SRC/v/virtualenv/${VENV}.tar.gz"
     (   curl -s "$VENV_URL" | tar xz \
-        && python $VENV/virtualenv.py $CUSTOM_PY --no-site-packages venv \
+        && python2 $VENV/virtualenv.py $CUSTOM_PY --no-site-packages venv \
         && source venv/bin/activate \
         && easy_install "$PYPI_SRC/p/pyparsing/pyparsing-2.0.2.tar.gz" \
         && easy_install "$PYPI_SRC/J/Jinja2/Jinja2-2.7.3.tar.gz" \
         && easy_install "$PYPI_SRC/a/argparse/argparse-1.2.1.tar.gz" \
         && easy_install "$PYPI_SRC/o/ordereddict/ordereddict-1.1.tar.gz" \
         && easy_install "$PYPI_SRC/C/Counter/Counter-1.0.0.tar.gz" \
+        && easy_install "$PYPI_SRC/s/sympy/sympy-0.7.6.tar.gz" \
         && touch .depsOK
     ) &> setup.log
 fi
