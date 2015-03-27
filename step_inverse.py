@@ -16,4 +16,5 @@ graphData = graph.CnCGraph("_", graphAst)
 
 if __name__ == '__main__':
     for (step, func) in graphData.stepFunctions.iteritems():
+        print "step:", step
         pprint(find_step_inverses(func))
