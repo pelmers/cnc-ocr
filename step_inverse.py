@@ -43,7 +43,7 @@ def main():
         return pprint_inverses(graphData)
     if args.blame:
         print "Steps that could be blamed for {}:".format(args.blame)
-        pprint(blame(args.blame, graphData))
+        pprint(blame(args.blame, graphData, event_graph))
     else:
         # user gives us log without blame, do an "auto-blame"
         # i.e. we perform a blame on the set of all items with a get without a put

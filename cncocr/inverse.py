@@ -40,14 +40,25 @@ def find_blame_candidates(arg_blame, graph_data):
     coll_tag_system = {Symbol("t{}".format(i+1)): v for i,v in enumerate(coll_tag)}
     # {s: {in_tag: value for each input tag of s} for each step s}
     candidates = {}
+    # steps that contain the collection in output but have no valid solution
+    rejected_steps = set()
     for (step, func) in graph_data.stepFunctions.iteritems():
         func_inverses = find_step_inverses(func)
         if coll_name in func_inverses:
             candidates[step] = {}
             for out_tag in func_inverses[coll_name]:
                 for (in_tag, expr) in out_tag.iteritems():
+                    in_tag = str(in_tag)
                     # evaluate inv_p(t)
-                    candidates[step][str(in_tag)] = expr.subs(coll_tag_system)
+                    inv = expr.subs(coll_tag_system)
+                    if in_tag in candidates[step]:
+                        if inv != candidates[step][in_tag]:
+                            # then the solution is inconsistent, reject the step
+                            rejected_steps.add(step)
+                    else:
+                        candidates[step][in_tag] = inv
+    for s in rejected_steps:
+        del candidates[s]
     return candidates
 
 def filter_blame_candidates(candidates, step_functions, event_graph):
