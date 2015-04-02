@@ -23,7 +23,8 @@ def find_step_inverses(stepFunction):
             # name the tag variable
             out_var = "t{}".format(i+1)
             expr = tag_expr(t, out_var)
-            outputs[output.collName].append(solve(expr, tag_space, dict=True)[0])
+            solution = solve(expr, tag_space, dict=True)
+            outputs[output.collName].append(solution[0] if solution else {})
     return outputs
 
 def find_blame_candidates(arg_blame, graph_data):
