@@ -23,8 +23,31 @@ def find_step_inverses(stepFunction):
             # name the tag variable
             out_var = "t{}".format(i+1)
             expr = tag_expr(t, out_var)
-            outputs[output.collName].append(solve(expr, tag_space)[0])
+            outputs[output.collName].append(solve(expr, tag_space, dict=True)[0])
     return outputs
+
+def find_blame_candidates(arg_blame, graph_data):
+    """
+    Given arg_blame in format coll@tag and graph_data from specfile, find the
+    possible steps@tag that could be responsible for putting or prescribing
+    arg_blame.
+    """
+    coll_name, coll_tag = arg_blame.split("@")
+    # turn coll_tag into a tuple representing a point in tagspace
+    coll_tag = tuple(coll_tag.split(","))
+    # turn coll_tag into dict of substitutions tk: coll_tag[k]
+    coll_tag_system = {Symbol("t{}".format(i+1)): v for i,v in enumerate(coll_tag)}
+    # {s: {in_tag: value for each input tag of s} for each step s}
+    candidates = {}
+    for (step, func) in graph_data.stepFunctions.iteritems():
+        func_inverses = find_step_inverses(func)
+        if coll_name in func_inverses:
+            candidates[step] = {}
+            for out_tag in func_inverses[coll_name]:
+                for (in_tag, expr) in out_tag.iteritems():
+                    # evaluate inv_p(t)
+                    candidates[step][str(in_tag)] = expr.subs(coll_tag_system)
+    return candidates
 
 def filter_blame_candidates(candidates, step_functions, event_graph):
     """

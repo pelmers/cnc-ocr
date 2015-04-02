@@ -185,6 +185,14 @@ class EventGraph(DAG):
         self.add_child(parent, child)
         self.set_edge_property(parent, child, "style", styles.style("prescribe"))
 
+    def gotten_without_put(self):
+        """Return set of item node id's with indegree = 0."""
+        return set(self._items_gotten).difference(set(self._items_put))
+
+    def put_without_get(self):
+        """Return set of item node id's with outdegree = 0."""
+        return set(self._items_put).difference(set(self._items_gotten))
+
     def post_process(self):
         """
         Perform some post processing tasks on the completed graph.
@@ -218,8 +226,8 @@ class EventGraph(DAG):
         warn_on_duplicates(self._steps_prescribed.keys(), "prescribed")
         warn_on_duplicates(self._items_put, "put")
         # warn on items gotten but not put or put without get
-        gotten_without_put = set(self._items_gotten).difference(set(self._items_put))
-        put_without_get = set(self._items_put).difference(set(self._items_gotten))
+        gotten_without_put = self.gotten_without_put()
+        put_without_get = self.put_without_get()
         warn_on_existence(gotten_without_put, "Items with GET without PUT",
                           styles.color('get_without_put'))
         warn_on_existence(put_without_get, "Items with PUT without GET",
