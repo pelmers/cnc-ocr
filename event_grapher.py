@@ -40,7 +40,7 @@ def main():
 
     rankdir = "LR" if args.horizontal else "TB"
     with open(args.logfile, 'r') as log:
-        graph = EventGraph(log.readlines(), not args.no_prescribe, args.html)
+        graph = EventGraph(log.readlines(), not args.no_prescribe)
         if args.html:
             template = templateEnv.get_template("index.html")
             gv = subprocess.Popen(['dot', '-Tsvg'], stdin=subprocess.PIPE,
