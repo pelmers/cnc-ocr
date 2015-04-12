@@ -1,4 +1,4 @@
-from sympy import Symbol, solve
+from sympy import Symbol, solve, Piecewise
 from sympy.core import sympify
 
 def tag_expr(tag, out_var):
@@ -7,6 +7,27 @@ def tag_expr(tag, out_var):
     # tag_expr - o_n, and solve for s, some variable in the tagspace
     return sympify(str.format("{} - {}", tag.expr, out_var))
 
+def piecewise_tag_expr(tag, out_var, condition):
+    """Return out_var = tag as a piecewise function defined where condition
+    evaluates to True."""
+    expr = tag_expr(tag, out_var)
+    # replace '#' and '@' from condition
+    condition = condition.replace('@', 'arg').replace('#', 'ctx')
+    cond = sympify(condition)
+    return Piecewise((expr, cond))
+
+def find_collNames(output_list):
+    """
+    Return list of collection names collected from refs in output_list.
+    """
+    colls = []
+    for out in output_list:
+        if out.kind in {"STEP", "ITEM"}:
+            colls.append(out.collName)
+        elif out.kind == "IF":
+            colls.append(out.refs[0].collName)
+    return colls
+
 def find_step_inverses(stepFunction):
     """
     Given a StepFunction, read the expressions for each output and return a map
@@ -14,23 +35,26 @@ def find_step_inverses(stepFunction):
     step c} where the tagspace is enumerated (t1,t2,...,tn).
     """
     tag_space = [Symbol(t) for t in stepFunction.tag]
-    outputs = {s.collName: [] for s in stepFunction.outputs
-                if s.kind in {"STEP", "ITEM"}}
+    outputs = {coll: [] for coll in find_collNames(stepFunction.outputs)}
+
+    def solve_for(tag, tag_space, out_var, cond = None):
+        expr = (piecewise_tag_expr(tag, out_var, cond) if cond else
+                tag_expr(tag, out_var))
+        solution = solve(expr, tag_space, dict=True)
+        return solution[0] if solution else {}
+
     for output in stepFunction.outputs:
-        # TODO: handle if expressions
-        if output.kind not in {"STEP", "ITEM"}:
-            continue
-        # either an itemref or a stepref
-        tag_list = output.key if output.kind == "ITEM" else output.tag
-        for (i, t) in enumerate(tag_list):
-            # ranges are one-to-many, so we can't solve for an inverse
-            if not t.isRanged:
-                # name the tag variable
-                out_var = "t{}".format(i+1)
-                expr = tag_expr(t, out_var)
-                solution = solve(expr, tag_space, dict=True)
-                outputs[output.collName].append(
-                        solution[0] if solution else {})
+        if output.kind in {"STEP", "ITEM"}:
+            tag_list = output.key if output.kind == "ITEM" else output.tag
+            outputs[output.collName].extend(
+                    solve_for(t, tag_space, "t{}".format(i+1))
+                    for (i, t) in enumerate(t for t in tag_list if not t.isRanged))
+        elif output.kind == "IF":
+            out_ref = output.refs[0]
+            tag_list = out_ref.key if out_ref.kind == "ITEM" else out_ref.tag
+            outputs[out_ref.collName].extend(
+                    solve_for(t, tag_space, "t{}".format(i+1), output.rawCond)
+                    for (i, t) in enumerate(t for t in tag_list if not t.isRanged))
     return outputs
 
 def find_blame_candidates(arg_blame, graph_data):
