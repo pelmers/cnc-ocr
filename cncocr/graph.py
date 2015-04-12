@@ -38,6 +38,8 @@ class ScalarTC(object):
     def __init__(self, stc):
         self.expr = CExpr(stc.expr)
         self.isRanged = False
+    def __str__(self):
+        return str(self.expr)
 
 
 class RangedTC(object):
@@ -56,6 +58,11 @@ class RangedTC(object):
             self.sizeExpr = "({0}+1)".format(self.sizeExpr)
         self.isRanged = True
 
+    def __str__(self):
+        if self.inclusive:
+            return "[{},{}]".format(self.start, self.end)
+        return "({},{})".format(self.start, self.end)
+
 
 def makeTagComponent(tc):
     return RangedTC(tc) if tc.kind == 'RANGED' else ScalarTC(tc)
@@ -68,6 +75,9 @@ class StepRef(object):
         self.tag = map(makeTagComponent, tuple(stepRef.tag))
         self.tagRanges = tuple(x for x in self.tag if x.isRanged)
 
+    def __str__(self):
+        return "{}@{}".format(self.collName, map(str, self.tag))
+
 
 class ItemRef(object):
     def __init__(self, itemRef):
@@ -78,6 +88,8 @@ class ItemRef(object):
         self.keyRanges = tuple(x for x in self.key if x.isRanged)
     def setBinding(self, b):
         self.binding = b
+    def __str__(self):
+        return "{}@{}".format(self.collName, map(str, self.key))
 
 
 class RefBlock(object):
@@ -86,7 +98,8 @@ class RefBlock(object):
         self.rawCond = block.cond.strip()
         self.cond = expandExpr(self.rawCond)
         self.refs = makeRefs(block.refs)
-
+    def __str__(self):
+        return "{}:{},{}".format(self.kind, self.rawCond, map(str, self.refs))
 
 class ItemDecl(object):
     def __init__(self, itemDecl):
@@ -95,6 +108,8 @@ class ItemDecl(object):
         self.key = tuple(itemDecl.key)
         self.isSingleton = len(self.key) == 0
         self.isVirtual = False
+    def __str__(self):
+        return "{}:{}".format(self.collName, self.key)
 
 
 class ItemMapping(ItemDecl):

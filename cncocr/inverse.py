@@ -14,17 +14,23 @@ def find_step_inverses(stepFunction):
     step c} where the tagspace is enumerated (t1,t2,...,tn).
     """
     tag_space = [Symbol(t) for t in stepFunction.tag]
-    outputs = {s.collName: [] for s in stepFunction.outputs}
+    outputs = {s.collName: [] for s in stepFunction.outputs
+                if s.kind in {"STEP", "ITEM"}}
     for output in stepFunction.outputs:
+        # TODO: handle if expressions
+        if output.kind not in {"STEP", "ITEM"}:
+            continue
         # either an itemref or a stepref
         tag_list = output.key if output.kind == "ITEM" else output.tag
-        # iterate over taglist, but filter out range types
-        for (i, t) in enumerate([i for i in tag_list if not i.isRanged]):
-            # name the tag variable
-            out_var = "t{}".format(i+1)
-            expr = tag_expr(t, out_var)
-            solution = solve(expr, tag_space, dict=True)
-            outputs[output.collName].append(solution[0] if solution else {})
+        for (i, t) in enumerate(tag_list):
+            # ranges are one-to-many, so we can't solve for an inverse
+            if not t.isRanged:
+                # name the tag variable
+                out_var = "t{}".format(i+1)
+                expr = tag_expr(t, out_var)
+                solution = solve(expr, tag_space, dict=True)
+                outputs[output.collName].append(
+                        solution[0] if solution else {})
     return outputs
 
 def find_blame_candidates(arg_blame, graph_data):
