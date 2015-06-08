@@ -1,11 +1,13 @@
 from sympy import Symbol, solve, Piecewise
 from sympy.core import sympify
 
+
 def tag_expr(tag, out_var):
     """Return out_var = tag as a SymPy expression."""
     # since sympify will automatically equate to zero, we convert it to:
     # tag_expr - o_n, and solve for s, some variable in the tagspace
     return sympify(str.format("{} - {}", tag.expr, out_var))
+
 
 def piecewise_tag_expr(tag, out_var, condition):
     """Return out_var = tag as a piecewise function defined where condition
@@ -15,6 +17,7 @@ def piecewise_tag_expr(tag, out_var, condition):
     condition = condition.replace('@', 'arg').replace('#', 'ctx')
     cond = sympify(condition)
     return Piecewise((expr, cond))
+
 
 def find_collNames(output_list):
     """
@@ -28,6 +31,7 @@ def find_collNames(output_list):
             colls.append(out.refs[0].collName)
     return colls
 
+
 def find_step_inverses(stepFunction):
     """
     Given a StepFunction, read the expressions for each output and return a map
@@ -37,7 +41,7 @@ def find_step_inverses(stepFunction):
     tag_space = [Symbol(t) for t in stepFunction.tag]
     outputs = {coll: [] for coll in find_collNames(stepFunction.outputs)}
 
-    def solve_for(tag, tag_space, out_var, cond = None):
+    def solve_for(tag, tag_space, out_var, cond=None):
         expr = (piecewise_tag_expr(tag, out_var, cond) if cond else
                 tag_expr(tag, out_var))
         solution = solve(expr, tag_space, dict=True)
@@ -47,15 +51,16 @@ def find_step_inverses(stepFunction):
         if output.kind in {"STEP", "ITEM"}:
             tag_list = output.key if output.kind == "ITEM" else output.tag
             outputs[output.collName].extend(
-                    solve_for(t, tag_space, "t{}".format(i+1))
-                    for (i, t) in enumerate(t for t in tag_list if not t.isRanged))
+                solve_for(t, tag_space, "t{}".format(i + 1))
+                for (i, t) in enumerate(t for t in tag_list if not t.isRanged))
         elif output.kind == "IF":
             out_ref = output.refs[0]
             tag_list = out_ref.key if out_ref.kind == "ITEM" else out_ref.tag
             outputs[out_ref.collName].extend(
-                    solve_for(t, tag_space, "t{}".format(i+1), output.rawCond)
-                    for (i, t) in enumerate(t for t in tag_list if not t.isRanged))
+                solve_for(t, tag_space, "t{}".format(i + 1), output.rawCond)
+                for (i, t) in enumerate(t for t in tag_list if not t.isRanged))
     return outputs
+
 
 def find_blame_candidates(arg_blame, graph_data):
     """
@@ -67,7 +72,8 @@ def find_blame_candidates(arg_blame, graph_data):
     # turn coll_tag into a tuple representing a point in tagspace
     coll_tag = tuple(coll_tag.split(","))
     # turn coll_tag into dict of substitutions tk: coll_tag[k]
-    coll_tag_system = {Symbol("t{}".format(i+1)): v for i,v in enumerate(coll_tag)}
+    coll_tag_system = {
+        Symbol("t{}".format(i + 1)): v for i, v in enumerate(coll_tag)}
     # {s: {in_tag: value for each input tag of s} for each step s}
     candidates = {}
     # steps that contain the collection in output but have no valid solution
@@ -83,13 +89,15 @@ def find_blame_candidates(arg_blame, graph_data):
                     inv = expr.subs(coll_tag_system)
                     if in_tag in candidates[step]:
                         if inv != candidates[step][in_tag]:
-                            # then the solution is inconsistent, reject the step
+                            # then the solution is inconsistent, reject the
+                            # step
                             rejected_steps.add(step)
                     else:
                         candidates[step][in_tag] = inv
     for s in rejected_steps:
         del candidates[s]
     return candidates
+
 
 def filter_blame_candidates(candidates, step_functions, event_graph):
     """
