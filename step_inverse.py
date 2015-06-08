@@ -23,7 +23,7 @@ def blame(arg_blame, graph_data, event_graph = None):
 def main():
     argParser = argparse.ArgumentParser(prog="cncocr_inv",
             description="Compute inverse output functions from CnC-OCR graph spec.")
-    argParser.add_argument('specfile', nargs='?', default="", help="CnC-OCR graph spec file")
+    argParser.add_argument('specfile', help="CnC-OCR graph spec file")
     argParser.add_argument('--log', nargs='?', default=None, help="CnC-OCR debug log file")
     argParser.add_argument('--blame', nargs='?', default=None, help="collection@tag or step@tag to blame")
     args = argParser.parse_args()
